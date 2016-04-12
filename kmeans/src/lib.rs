@@ -29,23 +29,33 @@ fn expectation(data: Vec<DataPoint>,
                cluster_centroids: Vec<DataPoint>) -> Vec<usize> {
 
     let mut distance: Vec<f64> = vec![];
-    let mut assigned_cluster: Vec<usize> = vec![];
+    let mut assigned_clusters: Vec<usize> = vec![];
     for point in &data {
         for cluster in &cluster_centroids {
             distance.push(squared_euclidean_distance(point, cluster));
         }
 
         // Index of cluster centroid that point is nearest to
-        assigned_cluster.push(get_index_of_min_val(&distance));
+        assigned_clusters.push(get_index_of_min_val(&distance));
     }
-    assigned_cluster
+    assigned_clusters
 }
 
-/*
-/// Update cluster centres
-fn maximisation(cluster_centroids: &mut Vec<DataPoint>) -> Vec<DataPoint> {
+fn count_occurences(list: &Vec<usize>, value: usize) -> usize {
+    let mut list_copy = list.clone();
+    list_copy.retain(|&x| x == value);
+    list_copy.len()
 }
-*/
+    
+
+/// Update cluster centres
+fn maximisation(cluster_centroids: &mut Vec<DataPoint>,
+                assigned_clusters: Vec<usize>) {
+
+    for i in 0..cluster_centroids.len() {
+        let num_points = count_occurences(&assigned_clusters, i);
+    }
+}
 
 
 #[cfg(test)]
