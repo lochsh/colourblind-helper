@@ -26,8 +26,7 @@ pub fn get_index_of_min_val(floats: &Vec<f64>) -> usize {
 
 /// Assign points to clusters
 fn expectation(data: Vec<&DataPoint>,
-                   cluster_centroids: Vec<DataPoint>)
-                   -> Vec<(&DataPoint, usize)> {
+               cluster_centroids: Vec<DataPoint>) -> Vec<(&DataPoint, usize)> {
 
     let mut distance: Vec<f64> = vec![];
     let mut cluster_assignments: Vec<(&DataPoint, usize)> = vec![];
@@ -107,8 +106,9 @@ mod tests {
     #[test]
     fn test_count_assignments_returns_0_when_no_occurences() {
         let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments: Vec<(&DataPoint, usize)> = vec![(&dp, 0), (&dp, 0), (&dp, 1),
-                                                  (&dp, 5), (&dp, 0)];
+        let assignments: Vec<(&DataPoint, usize)> = vec![(&dp, 0), (&dp, 0),
+                                                         (&dp, 1), (&dp, 5),
+                                                         (&dp, 0)];
         let val: usize = 4;
         let expected = 0;
         let actual = count_assignments(&assignments, val);
@@ -118,8 +118,9 @@ mod tests {
     #[test]
     fn test_count_assignments_returns_3_when_3_occurences() {
         let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments: Vec<(&DataPoint, usize)> = vec![(&dp, 0), (&dp, 0), (&dp, 1),
-                                                  (&dp, 5), (&dp, 0)];
+        let assignments: Vec<(&DataPoint, usize)> = vec![(&dp, 0), (&dp, 0),
+                                                         (&dp, 1), (&dp, 5),
+                                                         (&dp, 0)];
         let val: usize = 0;
         let expected = 3;
         let actual = count_assignments(&assignments, val);
