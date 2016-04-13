@@ -9,7 +9,8 @@ pub struct DataPoint {
 fn read_data(file_path: &Path) -> Vec<DataPoint> {
 }*/
 
-pub fn squared_euclidean_distance(point_a: &DataPoint, point_b: &DataPoint) -> f64 {
+pub fn squared_euclidean_distance(point_a: &DataPoint,
+                                  point_b: &DataPoint) -> f64 {
    (point_b.x - point_a.x).powi(2) + (point_b.y - point_a.y).powi(2)
 }
 
@@ -34,8 +35,6 @@ fn expectation(data: Vec<&DataPoint>,
         for cluster in &cluster_centroids {
             distance.push(squared_euclidean_distance(point, cluster));
         }
-
-        // Index of cluster centroid that point is nearest to
         cluster_assignments.push((point, get_index_of_min_val(&distance)));
     }
     cluster_assignments
@@ -67,8 +66,9 @@ fn maximisation(cluster_centroids: &mut Vec<DataPoint>,
     for i in 0..cluster_centroids.len() {
         let num_points = count_assignments(&cluster_assignments, i);
         let sum_points = sum_assigned_values(&cluster_assignments, i);
-        cluster_centroids[i] = DataPoint{x: sum_points.x/num_points as f64,
-                                         y: sum_points.y/num_points as f64};
+        cluster_centroids[i] = DataPoint{
+            x: sum_points.x/num_points as f64,
+            y: sum_points.y/num_points as f64};
     }
 }
 
@@ -79,8 +79,8 @@ mod tests {
 
     #[test]
     fn test_squared_euclidean_distance_simple_case() {
-        let origin = DataPoint { x: 0.0, y: 0.0};
-        let point = DataPoint {x: 1.0, y: 1.0};
+        let origin = DataPoint{x: 0.0, y: 0.0};
+        let point = DataPoint{x: 1.0, y: 1.0};
         let expected = 2.0;
         let actual = squared_euclidean_distance(&origin, &point);
         assert_eq!(expected, actual)
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_squared_euclidean_distance_gives_0_for_same_point() {
-        let point_a = DataPoint { x: -999.3, y: 10.5};
+        let point_a = DataPoint{x: -999.3, y: 10.5};
         let point_b = point_a.clone();
         let expected = 0.0;
         let actual = squared_euclidean_distance(&point_a, &point_b);
