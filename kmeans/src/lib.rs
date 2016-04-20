@@ -1,12 +1,36 @@
+use std::path::Path;
+
+extern crate csv;
+extern crate rustc_serialize;
+
 /// Store one data point's (or one cluster centroid's) x and y co-ordinates
-#[derive(Clone)]
+#[derive(Clone, RustcDecodable)]
 pub struct DataPoint {
     x: f64,
     y: f64,
 }
 
+/// Structure for holding data point's assignments to clusters
+#[derive(Clone)]
+pub struct Assignment {
+    data_point: DataPoint,
+    cluster_ind: usize,
+}
+
+
+fn read_data<P>(file_path: P) -> Vec<DataPoint> where P: AsRef<Path> {
+    let mut data = vec![];
+    let mut reader = csv::Reader::from_file(file_path).unwrap();
+    for data_point in reader.decode() {
+        let data_point: DataPoint = data_point.unwrap();
+        data.push(data_point);
+    }
+    data
+}
+
 /*
 fn read_data(file_path: &Path) -> Vec<DataPoint> {
+    let lines = 
 }*/
 
 pub fn squared_euclidean_distance(point_a: &DataPoint,
@@ -26,51 +50,75 @@ pub fn get_index_of_min_val(floats: &Vec<f64>) -> usize {
 }
 
 /// Assign points to clusters
-fn expectation(data: Vec<&DataPoint>,
-               cluster_centroids: Vec<DataPoint>) -> Vec<(&DataPoint, usize)> {
+fn expectation(data: Vec<DataPoint>,
+               cluster_centroids: &Vec<DataPoint>) -> Vec<(Assignment)> {
 
     let mut distance: Vec<f64> = vec![];
-    let mut cluster_assignments: Vec<(&DataPoint, usize)> = vec![];
+    let mut assignments: Vec<(Assignment)> = vec![];
     for point in data {
-        for cluster in &cluster_centroids {
-            distance.push(squared_euclidean_distance(point, cluster));
+        for cluster in cluster_centroids {
+            distance.push(squared_euclidean_distance(&point, cluster));
         }
-        cluster_assignments.push((point, get_index_of_min_val(&distance)));
+        assignments.push(Assignment{data_point: point,
+                                    cluster_ind: get_index_of_min_val(&distance)});
     }
-    cluster_assignments
+    assignments
 }
 
-pub fn count_assignments(assignments: &Vec<(&DataPoint, usize)>,
-                         cluster_index: usize) -> usize {
-    let mut assignments_copy = assignments.clone();
-    assignments_copy.retain(|&(_, a)| a == cluster_index);
-    assignments_copy.len()
+pub fn count_assignments(assignments: &Vec<Assignment>,
+                         cluster_ind: usize) -> usize {
+    let points_in_cluster = get_points_in_cluster(assignments, cluster_ind);
+    points_in_cluster.len()
 }
 
-pub fn sum_assigned_values(assignments: &Vec<(&DataPoint, usize)>,
-                           cluster_index: usize) -> DataPoint {
-    let mut assignments_copy = assignments.clone();
-    assignments_copy.retain(|&(_, a)| a == cluster_index);
+pub fn get_points_in_cluster(assignments: &Vec<Assignment>,
+                             cluster_ind: usize) -> Vec<Assignment> {
+    let mut points_in_cluster = assignments.clone();
+    points_in_cluster.retain(|&Assignment{data_point: _,
+                                          cluster_ind: a}| a == cluster_ind);
+    points_in_cluster
+}
+    
+pub fn sum_assigned_values(assignments: &Vec<Assignment>,
+                           cluster_ind: usize) -> DataPoint {
+    let points_in_cluster = get_points_in_cluster(assignments, cluster_ind);
     let (mut x_tot, mut y_tot) = (0.0_f64, 0.0_f64);
-    for (dp, a) in assignments_copy {
-        x_tot += dp.x;
-        y_tot += dp.y;
+    for point in points_in_cluster {
+        x_tot += point.data_point.x;
+        y_tot += point.data_point.y;
     }
     DataPoint{x: x_tot, y: y_tot}
 }
 
 /// Update cluster centres
 fn maximisation(cluster_centroids: &mut Vec<DataPoint>,
-                cluster_assignments: Vec<(&DataPoint, usize)>) {
+                assignments: &Vec<(Assignment)>) {
 
     for i in 0..cluster_centroids.len() {
-        let num_points = count_assignments(&cluster_assignments, i);
-        let sum_points = sum_assigned_values(&cluster_assignments, i);
+        let num_points = count_assignments(&assignments, i);
+        let sum_points = sum_assigned_values(&assignments, i);
         cluster_centroids[i] = DataPoint{
             x: sum_points.x/num_points as f64,
             y: sum_points.y/num_points as f64};
     }
 }
+
+fn get_error_metric(cluster_centroids: Vec<DataPoint>,
+                    assignments: Vec<(&Assignment)>) -> f64 {
+        let mut error = 0.0;
+        for i in 0..assignments.len() {
+            let cluster_ind = assignments[i].cluster_ind;
+            error += squared_euclidean_distance(&assignments[i].data_point,
+                                                &cluster_centroids[cluster_ind]);
+        }
+        error
+    }
+
+fn kmeans_one_iteration(mut cluster_centroids: Vec<DataPoint>,
+                        data: Vec<DataPoint>, num_clusters: i32) {
+    let assignments = expectation(data, &cluster_centroids);
+    maximisation(&mut cluster_centroids, &assignments);
+    }
 
 
 #[cfg(test)]
@@ -106,7 +154,7 @@ mod tests {
     #[test]
     fn test_count_assignments_returns_0_when_no_occurences() {
         let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments: Vec<(&DataPoint, usize)> = vec![(&dp, 0), (&dp, 0),
+        let assignments: Vec<(&Assignment)> = vec![(&dp, 0), (&dp, 0),
                                                          (&dp, 1), (&dp, 5),
                                                          (&dp, 0)];
         let val: usize = 4;
@@ -118,7 +166,7 @@ mod tests {
     #[test]
     fn test_count_assignments_returns_3_when_3_occurences() {
         let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments: Vec<(&DataPoint, usize)> = vec![(&dp, 0), (&dp, 0),
+        let assignments: Vec<(&Assignment)> = vec![(&dp, 0), (&dp, 0),
                                                          (&dp, 1), (&dp, 5),
                                                          (&dp, 0)];
         let val: usize = 0;
