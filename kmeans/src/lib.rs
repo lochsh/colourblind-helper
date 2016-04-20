@@ -152,9 +152,11 @@ mod tests {
     #[test]
     fn test_count_assignments_returns_0_when_no_occurences() {
         let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments: Vec<(&Assignment)> = vec![(&dp, 0), (&dp, 0),
-                                                         (&dp, 1), (&dp, 5),
-                                                         (&dp, 0)];
+        let assignments = vec![Assignment{data_point: &dp, cluster_ind: 0},
+                               Assignment{data_point: &dp, cluster_ind: 0},
+                               Assignment{data_point: &dp, cluster_ind: 1},
+                               Assignment{data_point: &dp, cluster_ind: 5},
+                               Assignment{data_point: &dp, cluster_ind: 0}];
         let val: usize = 4;
         let expected = 0;
         let actual = count_assignments(&assignments, val);
@@ -164,9 +166,11 @@ mod tests {
     #[test]
     fn test_count_assignments_returns_3_when_3_occurences() {
         let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments: Vec<(&Assignment)> = vec![(&dp, 0), (&dp, 0),
-                                                         (&dp, 1), (&dp, 5),
-                                                         (&dp, 0)];
+        let assignments = vec![Assignment{data_point: &dp, cluster_ind: 0},
+                               Assignment{data_point: &dp, cluster_ind: 0},
+                               Assignment{data_point: &dp, cluster_ind: 1},
+                               Assignment{data_point: &dp, cluster_ind: 5},
+                               Assignment{data_point: &dp, cluster_ind: 0}];
         let val: usize = 0;
         let expected = 3;
         let actual = count_assignments(&assignments, val);
