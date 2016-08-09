@@ -4,7 +4,7 @@ extern crate csv;
 extern crate rustc_serialize;
 
 /// Store one data point's (or one cluster centroid's) x and y co-ordinates
-#[derive(Clone, Debug, RustcDecodable)]
+#[derive(Clone, Copy, Debug, RustcDecodable)]
 pub struct DataPoint {
     pub x: f64,
     pub y: f64,
@@ -49,18 +49,37 @@ pub fn read_data<P>(file_path: P) -> Vec<DataPoint>
 }
 
 
-pub fn index_of_min_val(floats: &Vec<f64>) -> Option<usize> {
-    if floats.is_empty() {
+/*pub fn index_of_min_val<I>(floats: I) -> Option<usize> 
+    where I: IntoIterator<Item = f64>,
+{
+    let mut iter = floats.into_iter();
+
+    if iter.count() == 0 {
         None
     }
     else {
-        Some(floats.iter()
-                   .enumerate()
-                   .fold(0,
-                         |min_ind, (ind, &val)|
-                         if val == f64::min(floats[min_ind], val) { ind }
-                         else { min_ind }))
+        Some(iter.enumerate().next()
+                 .fold(0,
+                       |min_ind, (ind, &val)|
+                       if val == f64::min(iter[min_ind], val) { ind }
+                       else { min_ind }))
     }
+}*/
+
+pub fn index_of_min_val<I>(floats: I) -> Option<usize>
+    where I: IntoIterator<Item = f64>,
+{
+    let mut iter = floats.into_iter().enumerate();
+
+    iter.next().map(|(i, min)| {
+        iter.fold((i, min), |(min_i, min_val), (i, val)| {
+            if val < min_val {
+                (i, val)
+            } else {
+                (min_i, min_val)
+            }
+        }).0
+    })
 }
 
 
@@ -76,20 +95,21 @@ fn expectation<'a>(data: &'a [DataPoint],
     }).collect()
 }
 
-pub fn count_assignments(assignments: &Vec<Assignment>,
+pub fn count_assignments(assignments: &[Assignment],
                          cluster_ind: usize) -> usize {
     points_in_cluster(assignments, cluster_ind).count()
 }
 
-pub fn points_in_cluster<'a>(assignments: &'a Vec<Assignment>,
-                                 cluster_ind: usize) -> Vec<Assignment<'a>> {
-    let mut points_in_cluster = assignments.clone();
-    points_in_cluster.retain(|&Assignment{data_point: _,
-                                          cluster_ind: a}| a == cluster_ind);
-    points_in_cluster
+pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
+                                 expected_cluster_ind: usize) -> Box<Iterator<Item = Assignment<'a>> + 'a>
+{
+    let i = assignments.into_iter()
+        .cloned()
+        .filter(move |&Assignment { cluster_ind, .. }| expected_cluster_ind == cluster_ind);
+    Box::new(i)
 }
     
-pub fn sum_assigned_values(assignments: &Vec<Assignment>,
+pub fn sum_assigned_values(assignments: &[Assignment],
                            cluster_ind: usize) -> DataPoint
 {
     points_in_cluster(assignments, cluster_ind)
@@ -98,8 +118,8 @@ pub fn sum_assigned_values(assignments: &Vec<Assignment>,
 }
 
 /// Update cluster centres
-fn maximisation(cluster_centroids: &mut Vec<DataPoint>,
-                assignments: &Vec<(Assignment)>) {
+fn maximisation(cluster_centroids: &mut [DataPoint],
+                assignments: &[Assignment]) {
 
     for i in 0..cluster_centroids.len() {
         let num_points = count_assignments(&assignments, i);
@@ -110,8 +130,8 @@ fn maximisation(cluster_centroids: &mut Vec<DataPoint>,
     }
 }
 
-pub fn get_error_metric(cluster_centroids: &Vec<DataPoint>,
-                        assignments: &Vec<Assignment>) -> f64 {
+pub fn get_error_metric(cluster_centroids: &[DataPoint],
+                        assignments: &[Assignment]) -> f64 {
         assignments.iter()
                    .fold(0.0, |error, assignment| {
                        let centroid = &cluster_centroids[assignment.cluster_ind];
@@ -119,8 +139,8 @@ pub fn get_error_metric(cluster_centroids: &Vec<DataPoint>,
                    })
 }
 
-pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut Vec<DataPoint>,
-                                data: &'a Vec<DataPoint>) -> Vec<Assignment<'a>> {
+pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [DataPoint],
+                                data: &'a [DataPoint]) -> Vec<Assignment<'a>> {
     let assignments = expectation(data, cluster_centroids);
     maximisation(cluster_centroids, &assignments);
     assignments
