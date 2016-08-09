@@ -14,7 +14,7 @@ impl DataPoint {
     fn zero() -> DataPoint {
         DataPoint {
             x: 0.0,
-            y: 0.0.
+            y: 0.0,
         }
     }
 
@@ -43,52 +43,37 @@ pub struct Assignment<'a> {
 
 
 pub fn read_data<P>(file_path: P) -> Vec<DataPoint>
-    <where P: AsRef<Path> {
+    where P: AsRef<Path> {
     let mut reader = csv::Reader::from_file(file_path).unwrap();
     reader.decode().map(|point| point.unwrap()).collect()
 }
 
 
 pub fn get_index_of_min_val(floats: &Vec<f64>) -> Option<usize> {
-    floats.iter()
-          .enumerate()
-          .fold(0,
-                | min_ind, (ind, &val) |
-                if val == f64::min(floats[min_ind], val) { ind }
-                else { min_ind })
+    if floats.is_empty() {
+        None
+    }
+    else {
+        Some(floats.iter()
+                   .enumerate()
+                   .fold(0,
+                         |min_ind, (ind, &val)|
+                         if val == f64::min(floats[min_ind], val) { ind }
+                         else { min_ind }))
+    }
 }
-
-pub fn index_of_min_val<I>(floats: I) -> Option<usize>
-    where I: IntoIterator<Item = f64>,
-{
-    let mut iter = floats.into_iter().enumerate();
-
-    iter.next().map(|(i, min)| {
-        iter.fold((i, min), |(min_i, min_val), (i, val)| {
-            if val < min_val {
-                (i, val)
-            } else {
-                (min_i, min_val)
-            }
-        }).0
-    })
-}
-
-
 
 
 /// Assign points to clusters
-fn expectation<'a>(data: &'a Vec<DataPoint>,
-                   cluster_centroids: &Vec<DataPoint>) -> Vec<(Assignment<'a>)>
+fn expectation<'a>(data: &'a [DataPoint],
+                   cluster_centroids: &[DataPoint]) -> Vec<Assignment<'a>>
 {
-    data.iter()
-        .map(|point|) {
-            let distances = cluster_centroids
-                                .iter()
-                                .map(|cluster| point.squared_euclidean_distance(cluster));
-            let index = index_of_min_val(distances).expect("No minimum value found");
-            Assignment {data_point: point, cluster_ind: index}
-        }).collect()
+    data.iter().map(|point| {
+        let distances = cluster_centroids.iter()
+                                         .map(|cluster| point.squared_euclidean_distance(cluster));
+        let index = index_of_min_val(distances).expect("No minimum value found");
+        Assignment { data_point: point, cluster_ind: index }
+    }).collect()
 }
 
 pub fn count_assignments(assignments: &Vec<Assignment>,
