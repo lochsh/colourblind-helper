@@ -49,7 +49,7 @@ pub fn read_data<P>(file_path: P) -> Vec<DataPoint>
 }
 
 
-pub fn get_index_of_min_val(floats: &Vec<f64>) -> Option<usize> {
+pub fn index_of_min_val(floats: &Vec<f64>) -> Option<usize> {
     if floats.is_empty() {
         None
     }
@@ -112,14 +112,12 @@ fn maximisation(cluster_centroids: &mut Vec<DataPoint>,
 
 pub fn get_error_metric(cluster_centroids: &Vec<DataPoint>,
                         assignments: &Vec<Assignment>) -> f64 {
-        let mut error = 0.0;
-        for i in 0..assignments.len() {
-            let cluster_ind = assignments[i].cluster_ind;
-            error += squared_euclidean_distance(assignments[i].data_point,
-                                                &cluster_centroids[cluster_ind]);
-        }
-        error
-    }
+        assignments.iter()
+                   .fold(0.0, |error, assignment| {
+                       let centroid = &cluster_centroids[assignment.cluster_ind];
+                       error + assignment.data_point.squared_euclidean_distance(centroid)
+                   })
+}
 
 pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut Vec<DataPoint>,
                                 data: &'a Vec<DataPoint>) -> Vec<Assignment<'a>> {
@@ -153,10 +151,10 @@ mod tests {
     }
 
     #[test]
-    fn test_get_index_of_min_val() {
+    fn test_index_of_min_val() {
         let floats = vec![0.0_f64, 1.0_f64, 3.0_f64, -5.5_f64];
         let expected = 3;
-        let actual = get_index_of_min_val(&floats);
+        let actual = index_of_min_val(&floats);
         assert_eq!(expected, actual)
     }
 
