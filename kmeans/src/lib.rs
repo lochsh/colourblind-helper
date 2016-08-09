@@ -10,6 +10,30 @@ pub struct DataPoint {
     pub y: f64,
 }
 
+impl DataPoint {
+    fn zero() -> DataPoint {
+        DataPoint {
+            x: 0.0,
+            y: 0.0.
+        }
+    }
+
+    pub fn squared_euclidean_distance(&self, other: &DataPoint) -> f64 {
+        (other.x - self.x).powi(2) + (other.y - self.y).powi(2)
+    }
+}
+
+impl std::ops::Add for DataPoint {
+    type Output = DataPoint;
+
+    fn add(self, other: DataPoint) -> DataPoint {
+        DataPoint {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
 /// Structure for holding data point's assignments to clusters
 #[derive(Clone, Debug)]
 pub struct Assignment<'a> {
@@ -18,25 +42,14 @@ pub struct Assignment<'a> {
 }
 
 
-pub fn read_data<P>(file_path: P) -> Vec<DataPoint> where P: AsRef<Path> {
-    let mut data = vec![];
+pub fn read_data<P>(file_path: P) -> Vec<DataPoint>
+    <where P: AsRef<Path> {
     let mut reader = csv::Reader::from_file(file_path).unwrap();
-    for data_point in reader.decode() {
-        let data_point: DataPoint = data_point.unwrap();
-        data.push(data_point);
-    }
-    data
+    reader.decode().map(|point| point.unwrap()).collect()
 }
 
 
-pub fn squared_euclidean_distance(point_a: &DataPoint,
-                                  point_b: &DataPoint) -> f64 {
-   (point_b.x - point_a.x).powi(2) + (point_b.y - point_a.y).powi(2)
-}
-
-
-pub fn get_index_of_min_val(floats: &Vec<f64>) -> usize {
-
+pub fn get_index_of_min_val(floats: &Vec<f64>) -> Option<usize> {
     floats.iter()
           .enumerate()
           .fold(0,
@@ -45,29 +58,45 @@ pub fn get_index_of_min_val(floats: &Vec<f64>) -> usize {
                 else { min_ind })
 }
 
+pub fn index_of_min_val<I>(floats: I) -> Option<usize>
+    where I: IntoIterator<Item = f64>,
+{
+    let mut iter = floats.into_iter().enumerate();
+
+    iter.next().map(|(i, min)| {
+        iter.fold((i, min), |(min_i, min_val), (i, val)| {
+            if val < min_val {
+                (i, val)
+            } else {
+                (min_i, min_val)
+            }
+        }).0
+    })
+}
+
+
+
+
 /// Assign points to clusters
 fn expectation<'a>(data: &'a Vec<DataPoint>,
-                   cluster_centroids: &Vec<DataPoint>) -> Vec<(Assignment<'a>)> {
-
-    let mut assignments: Vec<(Assignment)> = vec![];
-    for point in data {
-        let mut distance: Vec<f64> = vec![];
-        for cluster in cluster_centroids {
-            distance.push(squared_euclidean_distance(&point, cluster));
-        }
-        assignments.push(Assignment{data_point: point,
-                                    cluster_ind: get_index_of_min_val(&distance)});
-    }
-    assignments
+                   cluster_centroids: &Vec<DataPoint>) -> Vec<(Assignment<'a>)>
+{
+    data.iter()
+        .map(|point|) {
+            let distances = cluster_centroids
+                                .iter()
+                                .map(|cluster| point.squared_euclidean_distance(cluster));
+            let index = index_of_min_val(distances).expect("No minimum value found");
+            Assignment {data_point: point, cluster_ind: index}
+        }).collect()
 }
 
 pub fn count_assignments(assignments: &Vec<Assignment>,
                          cluster_ind: usize) -> usize {
-    let points_in_cluster = get_points_in_cluster(assignments, cluster_ind);
-    points_in_cluster.len()
+    points_in_cluster(assignments, cluster_ind).count()
 }
 
-pub fn get_points_in_cluster<'a>(assignments: &'a Vec<Assignment>,
+pub fn points_in_cluster<'a>(assignments: &'a Vec<Assignment>,
                                  cluster_ind: usize) -> Vec<Assignment<'a>> {
     let mut points_in_cluster = assignments.clone();
     points_in_cluster.retain(|&Assignment{data_point: _,
@@ -76,14 +105,11 @@ pub fn get_points_in_cluster<'a>(assignments: &'a Vec<Assignment>,
 }
     
 pub fn sum_assigned_values(assignments: &Vec<Assignment>,
-                           cluster_ind: usize) -> DataPoint {
-    let points_in_cluster = get_points_in_cluster(assignments, cluster_ind);
-    let (mut x_tot, mut y_tot) = (0.0_f64, 0.0_f64);
-    for point in points_in_cluster {
-        x_tot += point.data_point.x;
-        y_tot += point.data_point.y;
-    }
-    DataPoint{x: x_tot, y: y_tot}
+                           cluster_ind: usize) -> DataPoint
+{
+    points_in_cluster(assignments, cluster_ind)
+        .into_iter()
+        .fold(DataPoint::zero(), |acc, point| acc + *point.data_point)
 }
 
 /// Update cluster centres
