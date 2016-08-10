@@ -4,7 +4,7 @@ extern crate csv;
 extern crate rustc_serialize;
 
 /// Store one data point's (or one cluster centroid's) x and y co-ordinates
-#[derive(Clone, Copy, Debug, RustcDecodable)]
+#[derive(Clone, Copy, Debug, PartialEq, RustcDecodable)]
 pub struct DataPoint {
     pub x: f64,
     pub y: f64,
