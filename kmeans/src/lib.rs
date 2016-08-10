@@ -140,85 +140,76 @@ mod tests {
 
     #[test]
     fn test_squared_euclidean_distance_simple_case() {
-        let origin = DataPoint{x: 0.0, y: 0.0};
-        let point = DataPoint{x: 1.0, y: 1.0};
-        let expected = 2.0;
-        let actual = squared_euclidean_distance(&origin, &point);
-        assert_eq!(expected, actual)
+        let origin = DataPoint { x: 0.0, y: 0.0 };
+        let point = DataPoint { x: 1.0, y: 1.0 };
+        assert_eq!(2.0, origin.squared_euclidean_distance(&point))
     }
 
     #[test]
     fn test_squared_euclidean_distance_gives_0_for_same_point() {
-        let point_a = DataPoint{x: -999.3, y: 10.5};
-        let point_b = point_a.clone();
-        let expected = 0.0;
-        let actual = squared_euclidean_distance(&point_a, &point_b);
-        assert_eq!(expected, actual)
+        let point_a = DataPoint { x: -999.3, y: 10.5 };
+        assert_eq!(0.0, point_a.squared_euclidean_distance(&point_a));
     }
 
     #[test]
-    fn test_index_of_min_val() {
+    fn test_index_of_min_val_end() {
         let floats = vec![0.0_f64, 1.0_f64, 3.0_f64, -5.5_f64];
-        let expected = 3;
-        let actual = index_of_min_val(&floats);
-        assert_eq!(expected, actual)
+        assert_eq!(Some(3), index_of_min_val(floats))
+    }
+
+    #[test]
+    fn test_index_of_min_val_start() {
+        let floats = vec![-7.0_f64, 1.0_f64, 3.0_f64, -5.5_f64];
+        assert_eq!(Some(0), index_of_min_val(floats))
+    }
+
+    #[test]
+    fn test_index_of_min_val_middle() {
+        let floats = vec![2.0_f64, 1.0_f64, 0.1_f64, 5.5_f64];
+        assert_eq!(Some(2), index_of_min_val(floats))
     }
 
     #[test]
     fn test_count_assignments_returns_0_when_no_occurences() {
-        let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments = vec![Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 1},
-                               Assignment{data_point: &dp, cluster_ind: 5},
-                               Assignment{data_point: &dp, cluster_ind: 0}];
-        let cluster_ind: usize = 4;
-        let expected = 0;
-        let actual = count_assignments(&assignments, cluster_ind);
-        assert_eq!(expected, actual)
+        let dp = DataPoint { x: 0.0, y: 0.0 };
+        let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 1 },
+                           Assignment { data_point: &dp, cluster_ind: 5 },
+                           Assignment { data_point: &dp, cluster_ind: 0 }];
+        assert_eq!(0, count_assignments(&assignments, 4))
     }
 
     #[test]
     fn test_count_assignments_returns_3_when_3_occurences() {
-        let dp = DataPoint{x: 0.0, y: 0.0};
-        let assignments = vec![Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 1},
-                               Assignment{data_point: &dp, cluster_ind: 5},
-                               Assignment{data_point: &dp, cluster_ind: 0}];
-        let cluster_ind: usize = 0;
-        let expected = 3;
-        let actual = count_assignments(&assignments, cluster_ind);
-        assert_eq!(expected, actual)
+        let dp = DataPoint { x: 0.0, y: 0.0 };
+        let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 1 },
+                           Assignment { data_point: &dp, cluster_ind: 5 },
+                           Assignment { data_point: &dp, cluster_ind: 0 }];
+        assert_eq!(3, count_assignments(&assignments, 0));
     }
 
     #[test]
     fn test_sum_assigned_values_returns_0_when_none_assigned() {
-        let dp = DataPoint{x: 5.0, y: 5.0};
-        let assignments = vec![Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 1},
-                               Assignment{data_point: &dp, cluster_ind: 5},
-                               Assignment{data_point: &dp, cluster_ind: 0}];
-        let cluster_ind: usize = 2;
-        let expected = DataPoint{x: 0.0, y: 0.0};
-        let actual = sum_assigned_values(&assignments, cluster_ind);
-        assert_eq!(expected.x, actual.x);
-        assert_eq!(expected.y, actual.y)
+        let dp = DataPoint { x: 5.0, y: 5.0 };
+        let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 1 },
+                           Assignment { data_point: &dp, cluster_ind: 5 },
+                           Assignment { data_point: &dp, cluster_ind: 0 }];
+        assert_eq!(DataPoint { x: 0.0, y: 0.0 }, sum_assigned_values(&assignments, 2))
     }
 
     #[test]
     fn test_sum_assigned_values_returns_correctly_when_some_assigned() {
-        let dp = DataPoint{x: 1.0, y: 1.0};
-        let assignments = vec![Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 0},
-                               Assignment{data_point: &dp, cluster_ind: 1},
-                               Assignment{data_point: &dp, cluster_ind: 5},
-                               Assignment{data_point: &dp, cluster_ind: 0}];
-        let cluster_ind: usize = 0;
-        let expected = DataPoint{x: 3.0, y: 3.0};
-        let actual = sum_assigned_values(&assignments, cluster_ind);
-        assert_eq!(expected.x, actual.x);
-        assert_eq!(expected.y, actual.y)
+        let dp = DataPoint { x: 1.0, y: 1.0 };
+        let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 0 },
+                           Assignment { data_point: &dp, cluster_ind: 1 },
+                           Assignment { data_point: &dp, cluster_ind: 5 },
+                           Assignment { data_point: &dp, cluster_ind: 0 }];
+        assert_eq!(DataPoint { x: 3.0, y: 3.0 }, sum_assigned_values(&assignments, 0));
     }
 }
