@@ -43,43 +43,26 @@ pub struct Assignment<'a> {
 
 
 pub fn read_data<P>(file_path: P) -> Vec<DataPoint>
-    where P: AsRef<Path> {
+    where P: AsRef<Path>
+{
     let mut reader = csv::Reader::from_file(file_path).unwrap();
     reader.decode().map(|point| point.unwrap()).collect()
 }
 
 
-/*pub fn index_of_min_val<I>(floats: I) -> Option<usize> 
-    where I: IntoIterator<Item = f64>,
-{
-    let mut iter = floats.into_iter();
-
-    if iter.count() == 0 {
-        None
-    }
-    else {
-        Some(iter.enumerate().next()
-                 .fold(0,
-                       |min_ind, (ind, &val)|
-                       if val == f64::min(iter[min_ind], val) { ind }
-                       else { min_ind }))
-    }
-}*/
-
 pub fn index_of_min_val<I>(floats: I) -> Option<usize>
     where I: IntoIterator<Item = f64>,
 {
-    let mut iter = floats.into_iter().enumerate();
+    let mut iter = floats.into_iter()
+                         .enumerate();
 
-    iter.next().map(|(i, min)| {
-        iter.fold((i, min), |(min_i, min_val), (i, val)| {
-            if val < min_val {
-                (i, val)
-            } else {
-                (min_i, min_val)
-            }
-        }).0
-    })
+    iter.next()
+        .map(|(i, min)| {
+            iter.fold((i, min), |(min_i, min_val), (i, val)| {
+                if val < min_val { (i, val) }
+                else { (min_i, min_val) }
+            }).0
+        })
 }
 
 
@@ -95,10 +78,6 @@ fn expectation<'a>(data: &'a [DataPoint],
     }).collect()
 }
 
-pub fn count_assignments(assignments: &[Assignment],
-                         cluster_ind: usize) -> usize {
-    points_in_cluster(assignments, cluster_ind).count()
-}
 
 pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
                                  expected_cluster_ind: usize) -> Box<Iterator<Item = Assignment<'a>> + 'a>
@@ -108,6 +87,13 @@ pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
         .filter(move |&Assignment { cluster_ind, .. }| expected_cluster_ind == cluster_ind);
     Box::new(i)
 }
+
+
+pub fn count_assignments(assignments: &[Assignment],
+                         cluster_ind: usize) -> usize {
+    points_in_cluster(assignments, cluster_ind).count()
+}
+
     
 pub fn sum_assigned_values(assignments: &[Assignment],
                            cluster_ind: usize) -> DataPoint
@@ -116,6 +102,7 @@ pub fn sum_assigned_values(assignments: &[Assignment],
         .into_iter()
         .fold(DataPoint::zero(), |acc, point| acc + *point.data_point)
 }
+
 
 /// Update cluster centres
 fn maximisation(cluster_centroids: &mut [DataPoint],
@@ -131,12 +118,12 @@ fn maximisation(cluster_centroids: &mut [DataPoint],
 }
 
 pub fn get_error_metric(cluster_centroids: &[DataPoint],
-                        assignments: &[Assignment]) -> f64 {
-        assignments.iter()
-                   .fold(0.0, |error, assignment| {
-                       let centroid = &cluster_centroids[assignment.cluster_ind];
-                       error + assignment.data_point.squared_euclidean_distance(centroid)
-                   })
+                        assignments: &[Assignment]) -> f64
+{
+    assignments.iter().fold(0.0, |error, assignment| {
+        let centroid = &cluster_centroids[assignment.cluster_ind];
+        error + assignment.data_point.squared_euclidean_distance(centroid)
+    })
 }
 
 pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [DataPoint],
@@ -145,7 +132,6 @@ pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [DataPoint],
     maximisation(cluster_centroids, &assignments);
     assignments
 }
-
 
 
 #[cfg(test)]
