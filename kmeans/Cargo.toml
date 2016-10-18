@@ -6,3 +6,4 @@ authors = ["Hannah McLaughlin <hannah.mclaughlin@paconsulting.com>"]
 [dependencies]
 csv = "0.14"
 rustc-serialize = "0.3"
+generic-array = "0.5.1"
