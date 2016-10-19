@@ -1,19 +1,37 @@
 extern crate generic_array;
+use generic_array::GenericArray;
 
-trait Euclidean<N> {
-    fn squared_euclidean_distance(&self, other: &generic_array::GenericArray<f64, N>) -> f64
-        where N: generic_array::ArrayLength<f64>;
+extern crate rustc_serialize;
+use rustc_serialize::{Decodable, Decoder};
+
+#[derive(Clone, Debug)]
+pub struct DataPoint<N>(GenericArray<f64, N>)
+    where N: generic_array::ArrayLength<f64>;
+
+
+impl <N> DataPoint<N>
+    where N: generic_array::ArrayLength<f64>
+{
+    pub fn squared_euclidean_distance(&self, other: &DataPoint<N>) -> f64
+        where N: generic_array::ArrayLength<f64>
+    {
+        let iter = self.0.iter().zip(other.0.iter());
+        iter.fold(0.0, |acc, x| acc + (x.0 - x.1).powi(2))
+    }
 }
 
 
-impl <N> Euclidean<N> for generic_array::GenericArray<f64, N>
+impl <N: Default+Copy+Decodable> Decodable for DataPoint<N>
     where N: generic_array::ArrayLength<f64>
 {
-    fn squared_euclidean_distance(&self, other: &generic_array::GenericArray<f64, N>) -> f64
-        where N: generic_array::ArrayLength<f64>
-    {
-        let iter = self.iter().zip(other.iter());
-        iter.fold(0.0, |acc, x| acc + (x.0 - x.1).powi(2))
+    fn decode<S: Decoder>(decoder: &mut S) -> Result<DataPoint<N>, S::Error> {
+        decoder.read_seq(|decoder, _| {
+            let mut arr  = GenericArray::<f64, N>::new();
+            for (i, val) in arr.iter_mut().enumerate() {
+                *val = try!(decoder.read_seq_elt(i, Decodable::decode));
+            }
+            Ok(DataPoint(arr))
+        })
     }
 }
 
@@ -23,6 +41,6 @@ impl <N> Euclidean<N> for generic_array::GenericArray<f64, N>
 pub struct Assignment<N>
     where N: generic_array::ArrayLength<f64>
 {
-    data_point: generic_array::GenericArray<f64, N>,
+    data_point: DataPoint<N>,
     cluster_ind: usize,
 }
