@@ -88,6 +88,7 @@ fn expectation<'a, N>(data: &'a [DataPoint<N>],
     }).collect()
 }
 
+
 pub fn points_in_cluster<'a, N>(assignments: &'a [Assignment<'a, N>],
                              expected_cluster_ind: usize) -> Box<Iterator<Item = Assignment<'a, N>> + 'a>
     where N: generic_array::ArrayLength<f64> + std::clone::Clone
@@ -96,4 +97,12 @@ pub fn points_in_cluster<'a, N>(assignments: &'a [Assignment<'a, N>],
         .cloned()
         .filter(move |&Assignment { cluster_ind, .. }| expected_cluster_ind == cluster_ind);
     Box::new(i)
+}
+
+
+pub fn count_assignments<'a, N>(assignments: &[Assignment<'a, N>],
+                         cluster_ind: usize) -> usize
+    where N: generic_array::ArrayLength<f64> + std::clone::Clone
+{
+    points_in_cluster(assignments, cluster_ind).count()
 }
