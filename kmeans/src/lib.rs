@@ -161,3 +161,13 @@ where N: generic_array::ArrayLength<f64>
         error + assignment.data_point.squared_euclidean_distance(centroid)
     })
 }
+
+
+pub fn kmeans_one_iteration<'a, N>(cluster_centroids: &mut [DataPoint<N>],
+                                data: &'a [DataPoint<N>]) -> Vec<Assignment<'a, N>>
+where N: generic_array::ArrayLength<f64> + std::clone::Clone
+{
+    let assignments = expectation(data, cluster_centroids);
+    maximisation(cluster_centroids, &assignments);
+    assignments
+}
