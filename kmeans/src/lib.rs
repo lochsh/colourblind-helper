@@ -40,6 +40,21 @@ impl <N: Default+Copy+Decodable> Decodable for DataPoint<N>
 }
 
 
+impl <N> std::ops::Add for DataPoint<N>
+    where N: generic_array::ArrayLength<f64>
+{
+    type Output = DataPoint<N>;
+
+    fn add(self, other: DataPoint<N>) -> DataPoint<N> {
+        let mut arr = GenericArray::<f64, N>::new();
+        for (i, val) in self.0.iter().zip(other.0.iter()).enumerate() {
+            arr[i] = val.0 + val.1;
+        }
+        DataPoint(arr)
+    }
+}
+
+
 /// Structure for holding data point's assignments to clusters
 #[derive(Clone, Debug)]
 pub struct Assignment<'a, N>
@@ -101,7 +116,7 @@ pub fn points_in_cluster<'a, N>(assignments: &'a [Assignment<'a, N>],
 
 
 pub fn count_assignments<'a, N>(assignments: &[Assignment<'a, N>],
-                         cluster_ind: usize) -> usize
+                                cluster_ind: usize) -> usize
     where N: generic_array::ArrayLength<f64> + std::clone::Clone
 {
     points_in_cluster(assignments, cluster_ind).count()
