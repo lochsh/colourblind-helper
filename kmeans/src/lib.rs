@@ -121,3 +121,13 @@ pub fn count_assignments<'a, N>(assignments: &[Assignment<'a, N>],
 {
     points_in_cluster(assignments, cluster_ind).count()
 }
+
+
+pub fn sum_assigned_values<'a, N>(assignments: &[Assignment<'a, N>],
+                                  cluster_ind: usize) -> DataPoint<N>
+where N: generic_array::ArrayLength<f64> + std::clone::Clone
+{
+    points_in_cluster(assignments, cluster_ind)
+        .into_iter()
+        .fold(DataPoint(GenericArray::<f64, N>::new()), |acc, point| acc + point.data_point.clone())
+}
