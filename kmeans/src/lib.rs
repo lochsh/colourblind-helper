@@ -150,3 +150,14 @@ where N: generic_array::ArrayLength<f64> + std::clone::Clone
         cluster_centroids[i] = DataPoint(arr);
     }
 }
+
+
+pub fn get_error_metric<'a, N>(cluster_centroids: &[DataPoint<N>],
+                               assignments: &[Assignment<'a, N>]) -> f64
+where N: generic_array::ArrayLength<f64>
+{
+    assignments.iter().fold(0.0, |error, assignment| {
+        let centroid = &cluster_centroids[assignment.cluster_ind];
+        error + assignment.data_point.squared_euclidean_distance(centroid)
+    })
+}
