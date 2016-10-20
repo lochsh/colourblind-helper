@@ -131,3 +131,22 @@ where N: generic_array::ArrayLength<f64> + std::clone::Clone
         .into_iter()
         .fold(DataPoint(GenericArray::<f64, N>::new()), |acc, point| acc + point.data_point.clone())
 }
+
+
+/// Update cluster centres
+fn maximisation<'a, N>(cluster_centroids: &mut [DataPoint<N>],
+                       assignments: &[Assignment<'a, N>])
+where N: generic_array::ArrayLength<f64> + std::clone::Clone
+{
+    for i in 0..cluster_centroids.len() {
+        let num_points = count_assignments(&assignments, i);
+        let sum_points = sum_assigned_values(&assignments, i);
+        let mut arr = GenericArray::<f64, N>::new();
+
+        for j in 0..arr.len() {
+            arr[j] = sum_points.0[j]/num_points as f64;
+        }
+
+        cluster_centroids[i] = DataPoint(arr);
+    }
+}
