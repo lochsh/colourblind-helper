@@ -1,3 +1,7 @@
+use std::path::Path;
+
+extern crate csv;
+
 extern crate generic_array;
 use generic_array::GenericArray;
 
@@ -43,4 +47,13 @@ pub struct Assignment<N>
 {
     data_point: DataPoint<N>,
     cluster_ind: usize,
+}
+
+
+pub fn read_data<P, N>(file_path: P) -> Vec<DataPoint<N>>
+    where P: AsRef<Path>,
+    N: generic_array::ArrayLength<f64> + std::marker::Copy + std::default::Default + rustc_serialize::Decodable
+{
+    let mut reader = csv::Reader::from_file(file_path).unwrap();
+    reader.decode().map(|point| point.unwrap()).collect()
 }
