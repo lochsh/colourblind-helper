@@ -16,7 +16,7 @@ pub struct DataPoint<N>(GenericArray<f64, N>)
 impl <N> DataPoint<N>
     where N: generic_array::ArrayLength<f64>
 {
-    pub fn squared_euclidean_distance(&self, other: &DataPoint<N>) -> f64
+    fn squared_euclidean_distance(&self, other: &DataPoint<N>) -> f64
         where N: generic_array::ArrayLength<f64>
     {
         let iter = self.0.iter().zip(other.0.iter());
@@ -76,7 +76,7 @@ pub fn index_of_min_val<I>(floats: I) -> Option<usize>
 
 
 /// Assign points to clusters
-pub fn expectation<'a, N>(data: &'a [DataPoint<N>],
+fn expectation<'a, N>(data: &'a [DataPoint<N>],
                    cluster_centroids: &[DataPoint<N>]) -> Vec<Assignment<'a, N>>
     where N: generic_array::ArrayLength<f64>
 {
@@ -86,4 +86,14 @@ pub fn expectation<'a, N>(data: &'a [DataPoint<N>],
         let index = index_of_min_val(distances).expect("No minimum value found");
         Assignment { data_point: point, cluster_ind: index }
     }).collect()
+}
+
+pub fn points_in_cluster<'a, N>(assignments: &'a [Assignment<'a, N>],
+                             expected_cluster_ind: usize) -> Box<Iterator<Item = Assignment<'a, N>> + 'a>
+    where N: generic_array::ArrayLength<f64> + std::clone::Clone
+{
+    let i = assignments.into_iter()
+        .cloned()
+        .filter(move |&Assignment { cluster_ind, .. }| expected_cluster_ind == cluster_ind);
+    Box::new(i)
 }
