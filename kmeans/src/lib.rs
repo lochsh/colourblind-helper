@@ -3,11 +3,12 @@ use std::path::Path;
 extern crate csv;
 extern crate rustc_serialize;
 
-/// Store one data point's (or one cluster centroid's) x and y co-ordinates
+/// Store one 3-D data point's co-ordinates
 #[derive(Clone, Copy, Debug, PartialEq, RustcDecodable)]
 pub struct DataPoint {
     pub x: f64,
     pub y: f64,
+    pub z: f64,
 }
 
 impl DataPoint {
@@ -15,11 +16,13 @@ impl DataPoint {
         DataPoint {
             x: 0.0,
             y: 0.0,
+            z: 0.0,
         }
     }
 
     pub fn squared_euclidean_distance(&self, other: &DataPoint) -> f64 {
-        (other.x - self.x).powi(2) + (other.y - self.y).powi(2)
+        (other.x - self.x).powi(2) + (other.y - self.y).powi(2) +
+        (other.z - self.z).powi(2)
     }
 }
 
@@ -30,6 +33,7 @@ impl std::ops::Add for DataPoint {
         DataPoint {
             x: self.x + other.x,
             y: self.y + other.y,
+            z: self.z + other.z,
         }
     }
 }
@@ -113,7 +117,8 @@ fn maximisation(cluster_centroids: &mut [DataPoint],
         let sum_points = sum_assigned_values(&assignments, i);
         cluster_centroids[i] = DataPoint{
             x: sum_points.x/num_points as f64,
-            y: sum_points.y/num_points as f64};
+            y: sum_points.y/num_points as f64,
+            z: sum_points.z/num_points as f64};
     }
 }
 
@@ -140,15 +145,14 @@ mod tests {
 
     #[test]
     fn test_squared_euclidean_distance_simple_case() {
-        let origin = DataPoint { x: 0.0, y: 0.0 };
-        let point = DataPoint { x: 1.0, y: 1.0 };
-        assert_eq!(2.0, origin.squared_euclidean_distance(&point))
+        let point = DataPoint { x: 1.0, y: 1.0, z: 1.0};
+        assert_eq!(2.0, DataPoint::zero().squared_euclidean_distance(&point));
     }
 
     #[test]
     fn test_squared_euclidean_distance_gives_0_for_same_point() {
-        let point_a = DataPoint { x: -999.3, y: 10.5 };
-        assert_eq!(0.0, point_a.squared_euclidean_distance(&point_a));
+        let point = DataPoint { x: -999.3, y: 10.5, z: 0.15};
+        assert_eq!(0.0, point.squared_euclidean_distance(&point));
     }
 
     #[test]
@@ -171,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_count_assignments_returns_0_when_no_occurences() {
-        let dp = DataPoint { x: 0.0, y: 0.0 };
+        let dp = DataPoint::zero();
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
@@ -182,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_count_assignments_returns_3_when_3_occurences() {
-        let dp = DataPoint { x: 0.0, y: 0.0 };
+        let dp = DataPoint::zero();
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
@@ -193,23 +197,24 @@ mod tests {
 
     #[test]
     fn test_sum_assigned_values_returns_0_when_none_assigned() {
-        let dp = DataPoint { x: 5.0, y: 5.0 };
+        let dp = DataPoint { x: 5.0, y: 5.0, z: 5.0};
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
                            Assignment { data_point: &dp, cluster_ind: 5 },
                            Assignment { data_point: &dp, cluster_ind: 0 }];
-        assert_eq!(DataPoint { x: 0.0, y: 0.0 }, sum_assigned_values(&assignments, 2))
+        assert_eq!(DataPoint::zero(), sum_assigned_values(&assignments, 2))
     }
 
     #[test]
     fn test_sum_assigned_values_returns_correctly_when_some_assigned() {
-        let dp = DataPoint { x: 1.0, y: 1.0 };
+        let dp = DataPoint { x: 1.0, y: 1.0, z: 1.0};
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
                            Assignment { data_point: &dp, cluster_ind: 5 },
                            Assignment { data_point: &dp, cluster_ind: 0 }];
-        assert_eq!(DataPoint { x: 3.0, y: 3.0 }, sum_assigned_values(&assignments, 0));
+        assert_eq!(DataPoint { x: 3.0, y: 3.0, z: 1.0},
+                   sum_assigned_values(&assignments, 0));
     }
 }
