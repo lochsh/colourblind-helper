@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 extern crate csv;
@@ -170,6 +171,17 @@ pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [RgbPixel],
     maximisation(cluster_centroids, &assignments);
     assignments
 }
+
+/*
+fn rgb_to_colour_name(rgb: RgbPixel, colours: HashMap<RgbPixel, String>) -> String {
+    let mut distances = Vec::new();
+
+    for col in colours.keys() {
+        distances.push(rgb.squared_euclidean_distance(col));
+    }
+
+    colours.keys()[index_of_min_val(distances)];
+}*/
 
 
 #[cfg(test)]

@@ -3,8 +3,32 @@ extern crate colourblind_helper;
 
 use image::GenericImage;
 use colourblind_helper::*;
+
+use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
+use std::io::prelude::*;
 use std::path::Path;
 use std::vec::Vec;
+
+
+fn read_lines<P>(file_path: P) -> Vec<String> where P: AsRef<Path> {
+    let file_path = file_path.as_ref();
+
+    let file = match File::open(file_path) {
+        Err(why) => panic!("Couldn't open file {}: {}",
+                           file_path.display(), why.description()),
+        Ok(file) => file,
+    };
+
+    BufReader::new(file).lines().map(|line| {
+        match line {
+            Ok(l) => l,
+            Err(why) => panic!("Couldn't read file {}: {}",
+                               file_path.display(), why.description()),
+        }
+    }).collect()
+}
 
 
 fn write_assignments_to_file(assignments: Vec<Assignment>,
