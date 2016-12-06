@@ -1,8 +1,8 @@
 extern crate image;
-extern crate kmeans;
+extern crate colourblind_helper;
 
 use image::GenericImage;
-use kmeans::*;
+use colourblind_helper::*;
 use std::path::Path;
 use std::vec::Vec;
 
