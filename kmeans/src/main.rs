@@ -6,6 +6,25 @@ use kmeans::*;
 use std::path::Path;
 use std::vec::Vec;
 
+
+fn write_assignments_to_file(assignments: Vec<Assignment>,
+                             cluster_centroids: Vec<RgbPixel>,
+                             width: u32, height: u32)
+{
+   let mut img_out = image::RgbImage::new(width, height);
+
+   for (a, i) in assignments.iter().zip(0..width*height) {
+       let rgb = cluster_centroids[a.cluster_ind];
+       img_out.put_pixel(i % width, i / width,
+                         image::Rgb{data: [rgb.r as u8,
+                                           rgb.g as u8,
+                                           rgb.b as u8]});
+   }
+
+   img_out.save("test.jpg").unwrap();
+}
+
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let img = image::open(&Path::new(&args[1])).unwrap();
@@ -36,15 +55,5 @@ fn main() {
     }
 
    let (width, height) = img.dimensions();
-   let mut img_out = image::RgbImage::new(width, height);
-
-   for (a, i) in assignments.iter().zip(0..width*height) {
-       let rgb = cluster_centroids[a.cluster_ind];
-       img_out.put_pixel(i % width, i / width,
-                         image::Rgb{data: [rgb.r as u8,
-                                           rgb.g as u8,
-                                           rgb.b as u8]});
-   }
-
-   img_out.save("test.jpg").unwrap();
+   write_assignments_to_file(assignments, cluster_centroids, width, height);
 }
