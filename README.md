@@ -1,10 +1,13 @@
-# K means clustering in Rust!
+# Colourblind helper in Rust!
 
-## A project to help me learn this exciting new language
+## Labels the colours in an image
 
-* kmeans/src/lib.rs has all the required methods, plus unit tests
-* kmeans/src/main.rs has calling code, which currently uses Old Faithful data 
-  set provided as an example in kmeans/data
+### Helpful in particular to colourblind artists working from reference images
+
+This project is still under development.  Currently have implemented K means 
+clustering for grouping blocks of colour:
+* kmeans/src/lib.rs has all the required methods for clustering, plus unit 
+  tests
 
 You can read more about K means clustering here: 
 https://en.wikipedia.org/wiki/K-means_clustering
