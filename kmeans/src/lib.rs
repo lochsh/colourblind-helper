@@ -3,37 +3,62 @@ use std::path::Path;
 extern crate csv;
 extern crate rustc_serialize;
 
-/// Store one 3-D data point's co-ordinates
+/// Store one RGB pixel's colour channel values
 #[derive(Clone, Copy, Debug, PartialEq, RustcDecodable)]
-pub struct DataPoint {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
+pub struct RGBPixel {
+    pub r: f64,
+    pub g: f64,
+    pub b: f64,
 }
 
-impl DataPoint {
-    fn zero() -> DataPoint {
-        DataPoint {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
+
+impl RGBPixel {
+    pub fn zero() -> RGBPixel {
+        RGBPixel {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
         }
     }
 
-    pub fn squared_euclidean_distance(&self, other: &DataPoint) -> f64 {
-        (other.x - self.x).powi(2) + (other.y - self.y).powi(2) +
-        (other.z - self.z).powi(2)
+    pub fn red() -> RGBPixel {
+        RGBPixel {
+            r: 255.0,
+            g: 0.0,
+            b: 0.0,
+        }
+    }
+
+    pub fn green() -> RGBPixel {
+        RGBPixel {
+            r: 0.0,
+            g: 255.0,
+            b: 0.0,
+        }
+    }
+
+    pub fn blue() -> RGBPixel {
+        RGBPixel {
+            r: 0.0,
+            g: 0.0,
+            b: 255.0,
+        }
+    }
+
+    pub fn squared_euclidean_distance(&self, other: &RGBPixel) -> f64 {
+        (other.r - self.r).powi(2) + (other.g - self.g).powi(2) +
+        (other.b - self.b).powi(2)
     }
 }
 
-impl std::ops::Add for DataPoint {
-    type Output = DataPoint;
+impl std::ops::Add for RGBPixel {
+    type Output = RGBPixel;
 
-    fn add(self, other: DataPoint) -> DataPoint {
-        DataPoint {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
+    fn add(self, other: RGBPixel) -> RGBPixel {
+        RGBPixel {
+            r: self.r + other.r,
+            g: self.g + other.g,
+            b: self.b + other.b,
         }
     }
 }
@@ -41,12 +66,12 @@ impl std::ops::Add for DataPoint {
 /// Structure for holding data point's assignments to clusters
 #[derive(Clone, Debug)]
 pub struct Assignment<'a> {
-    data_point: &'a DataPoint,
+    data_point: &'a RGBPixel,
     cluster_ind: usize,
 }
 
 
-pub fn read_data<P>(file_path: P) -> Vec<DataPoint>
+pub fn read_data<P>(file_path: P) -> Vec<RGBPixel>
     where P: AsRef<Path>
 {
     let mut reader = csv::Reader::from_file(file_path).unwrap();
@@ -71,8 +96,8 @@ pub fn index_of_min_val<I>(floats: I) -> Option<usize>
 
 
 /// Assign points to clusters
-fn expectation<'a>(data: &'a [DataPoint],
-                   cluster_centroids: &[DataPoint]) -> Vec<Assignment<'a>>
+fn expectation<'a>(data: &'a [RGBPixel],
+                   cluster_centroids: &[RGBPixel]) -> Vec<Assignment<'a>>
 {
     data.iter().map(|point| {
         let distances = cluster_centroids.iter()
@@ -98,31 +123,31 @@ pub fn count_assignments(assignments: &[Assignment],
     points_in_cluster(assignments, cluster_ind).count()
 }
 
-    
+
 pub fn sum_assigned_values(assignments: &[Assignment],
-                           cluster_ind: usize) -> DataPoint
+                           cluster_ind: usize) -> RGBPixel
 {
     points_in_cluster(assignments, cluster_ind)
         .into_iter()
-        .fold(DataPoint::zero(), |acc, point| acc + *point.data_point)
+        .fold(RGBPixel::zero(), |acc, point| acc + *point.data_point)
 }
 
 
 /// Update cluster centres
-fn maximisation(cluster_centroids: &mut [DataPoint],
+fn maximisation(cluster_centroids: &mut [RGBPixel],
                 assignments: &[Assignment]) {
 
     for i in 0..cluster_centroids.len() {
         let num_points = count_assignments(&assignments, i);
         let sum_points = sum_assigned_values(&assignments, i);
-        cluster_centroids[i] = DataPoint{
-            x: sum_points.x/num_points as f64,
-            y: sum_points.y/num_points as f64,
-            z: sum_points.z/num_points as f64};
+        cluster_centroids[i] = RGBPixel{
+            r: sum_points.r/num_points as f64,
+            g: sum_points.g/num_points as f64,
+            b: sum_points.b/num_points as f64};
     }
 }
 
-pub fn get_error_metric(cluster_centroids: &[DataPoint],
+pub fn get_error_metric(cluster_centroids: &[RGBPixel],
                         assignments: &[Assignment]) -> f64
 {
     assignments.iter().fold(0.0, |error, assignment| {
@@ -131,8 +156,8 @@ pub fn get_error_metric(cluster_centroids: &[DataPoint],
     })
 }
 
-pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [DataPoint],
-                                data: &'a [DataPoint]) -> Vec<Assignment<'a>> {
+pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [RGBPixel],
+                                data: &'a [RGBPixel]) -> Vec<Assignment<'a>> {
     let assignments = expectation(data, cluster_centroids);
     maximisation(cluster_centroids, &assignments);
     assignments
@@ -145,13 +170,13 @@ mod tests {
 
     #[test]
     fn test_squared_euclidean_distance_simple_case() {
-        let point = DataPoint { x: 1.0, y: 1.0, z: 1.0};
-        assert_eq!(2.0, DataPoint::zero().squared_euclidean_distance(&point));
+        let point = RGBPixel { r: 1.0, g: 1.0, b: 1.0};
+        assert_eq!(3.0, RGBPixel::zero().squared_euclidean_distance(&point));
     }
 
     #[test]
     fn test_squared_euclidean_distance_gives_0_for_same_point() {
-        let point = DataPoint { x: -999.3, y: 10.5, z: 0.15};
+        let point = RGBPixel { r: -999.3, g: 10.5, b: 0.15};
         assert_eq!(0.0, point.squared_euclidean_distance(&point));
     }
 
@@ -175,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_count_assignments_returns_0_when_no_occurences() {
-        let dp = DataPoint::zero();
+        let dp = RGBPixel::zero();
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
@@ -186,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_count_assignments_returns_3_when_3_occurences() {
-        let dp = DataPoint::zero();
+        let dp = RGBPixel::zero();
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
@@ -197,24 +222,24 @@ mod tests {
 
     #[test]
     fn test_sum_assigned_values_returns_0_when_none_assigned() {
-        let dp = DataPoint { x: 5.0, y: 5.0, z: 5.0};
+        let dp = RGBPixel { r: 5.0, g: 5.0, b: 5.0};
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
                            Assignment { data_point: &dp, cluster_ind: 5 },
                            Assignment { data_point: &dp, cluster_ind: 0 }];
-        assert_eq!(DataPoint::zero(), sum_assigned_values(&assignments, 2))
+        assert_eq!(RGBPixel::zero(), sum_assigned_values(&assignments, 2))
     }
 
     #[test]
     fn test_sum_assigned_values_returns_correctly_when_some_assigned() {
-        let dp = DataPoint { x: 1.0, y: 1.0, z: 1.0};
+        let dp = RGBPixel { r: 1.0, g: 1.0, b: 1.0};
         let assignments = [Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 0 },
                            Assignment { data_point: &dp, cluster_ind: 1 },
                            Assignment { data_point: &dp, cluster_ind: 5 },
                            Assignment { data_point: &dp, cluster_ind: 0 }];
-        assert_eq!(DataPoint { x: 3.0, y: 3.0, z: 1.0},
+        assert_eq!(RGBPixel{r: 3.0, g: 3.0, b: 3.0},
                    sum_assigned_values(&assignments, 0));
     }
 }
