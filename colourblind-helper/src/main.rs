@@ -31,13 +31,13 @@ fn read_lines<P>(file_path: P) -> Vec<String> where P: AsRef<Path> {
 }
 
 
-fn write_assignments_to_file<T>(assignments: Vec<Assignment<T>>, cluster_centroids: Vec<RgbPixel<T>>,
-                                width: u32, height: u32) where T: ColourVal
+fn write_assignments_to_file(assignments: Vec<Assignment>, cluster_centroids: Vec<RgbPixel>,
+                             width: u32, height: u32)
 {
    let mut img_out = image::RgbImage::new(width, height);
 
    for (a, i) in assignments.iter().zip(0..width*height) {
-       img_out.put_pixel(i % width, i / width, cluster_centroids[a.cluster_ind].as_u8());
+       img_out.put_pixel(i % width, i / width, cluster_centroids[a.cluster_ind].0);
    }
 
    img_out.save("test.jpg").unwrap();
@@ -50,22 +50,19 @@ fn main() {
 
     let mut pixels = Vec::new();
     for p in img.pixels() {
-        pixels.push(RgbPixel::new(p.2.data[0] as f64,
-                                  p.2.data[1] as f64,
-                                  p.2.data[2] as f64));
+        pixels.push(RgbPixel::new(p.2.data[0], p.2.data[1], p.2.data[2]));
     }
 
     let mut cluster_centroids = vec![RgbPixel::black(),
-                                     RgbPixel::new(255.0, 0.0, 0.0),
-                                     RgbPixel::new(0.0, 255.0, 0.0),
-                                     RgbPixel::new(0.0, 0.0, 255.0),
-                                     RgbPixel::new(0.0, 0.0, 0.0),
-                                     RgbPixel::new(255.0, 0.0, 255.0)];;
+                                     RgbPixel::new(255, 0, 0),
+                                     RgbPixel::new(0, 255, 0),
+                                     RgbPixel::new(0, 0, 255),
+                                     RgbPixel::new(0, 0, 0),
+                                     RgbPixel::new(255, 0, 255)];;
 
     let (mut error, mut prev_error) = (0.0, -1.0);
     let init_pixel = RgbPixel::black();
-    let mut assignments: Vec<Assignment<f64>> = vec![Assignment{pixel: &init_pixel,
-                                                           cluster_ind: 0}];
+    let mut assignments: Vec<Assignment> = vec![Assignment{pixel: &init_pixel, cluster_ind: 0}];
 
     while error != prev_error {
         prev_error = error;
