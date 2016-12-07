@@ -1,95 +1,64 @@
-use std::collections::HashMap;
-use std::path::Path;
-
-extern crate csv;
-extern crate rustc_serialize;
-
-/// Store one RGB pixel's colour channel values
-#[derive(Clone, Copy, Debug, PartialEq, RustcDecodable)]
-pub struct RgbPixel {
-    pub r: f64,
-    pub g: f64,
-    pub b: f64,
-}
+extern crate image;
+extern crate num;
 
 
-impl RgbPixel {
-    pub fn black() -> RgbPixel {
-        RgbPixel {
-            r: 0.0,
-            g: 0.0,
-            b: 0.0,
-        }
+pub trait ColourVal: image::Primitive + num::Float {}
+impl<T> ColourVal for T where T: image::Primitive + num::Float {}
+
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RgbPixel<T>(pub image::Rgb<T>) where T: ColourVal;
+
+
+impl <T> RgbPixel<T> where T: ColourVal {
+
+    pub fn new(r: T, g: T, b: T) -> RgbPixel<T> where T: ColourVal {
+        RgbPixel(image::Rgb {data: [r, g, b]})
     }
 
-    pub fn white() -> RgbPixel {
-        RgbPixel {
-            r: 255.0,
-            g: 255.0,
-            b: 255.0,
-        }
+    pub fn black() -> RgbPixel<T> where T: ColourVal {
+        RgbPixel::new(T::zero(), T::zero(), T::zero())
     }
 
-    pub fn red() -> RgbPixel {
-        RgbPixel {
-            r: 255.0,
-            g: 0.0,
-            b: 0.0,
-        }
+    pub fn sq_euclidean_distance(&self, other: &RgbPixel<T>) -> T
+        where T: ColourVal
+    {
+        self.0.data.iter()
+                   .zip(other.0.data.iter())
+                   .fold(T::zero(), |acc, x| acc + x.0.powi(2) + x.1.powi(2))
     }
 
-    pub fn green() -> RgbPixel {
-        RgbPixel {
-            r: 0.0,
-            g: 255.0,
-            b: 0.0,
-        }
-    }
-
-    pub fn blue() -> RgbPixel {
-        RgbPixel {
-            r: 0.0,
-            g: 0.0,
-            b: 255.0,
-        }
-    }
-
-    pub fn squared_euclidean_distance(&self, other: &RgbPixel) -> f64 {
-        (other.r - self.r).powi(2) + (other.g - self.g).powi(2) +
-        (other.b - self.b).powi(2)
+    pub fn as_u8(&self) -> image::Rgb<u8> {
+        image::Rgb {data: [self.0.data[0] as u8,
+                           self.0.data[1] as u8,
+                           self.0.data[2] as u8]}
     }
 }
 
-impl std::ops::Add for RgbPixel {
-    type Output = RgbPixel;
+impl <T> std::ops::Add for RgbPixel<T> where T: ColourVal {
+    type Output = RgbPixel<T>;
 
-    fn add(self, other: RgbPixel) -> RgbPixel {
-        RgbPixel {
-            r: self.r + other.r,
-            g: self.g + other.g,
-            b: self.b + other.b,
+    fn add(self, other: RgbPixel<T>) -> RgbPixel<T> where T: ColourVal {
+        let mut sum = RgbPixel::black();
+
+        for i in 0..3 {
+            sum.0.data[i] = self.0.data[i] + other.0.data[i];
         }
+
+        sum
     }
 }
 
 /// Structure for holding data point's assignments to clusters
 #[derive(Clone, Debug)]
-pub struct Assignment<'a> {
-    pub pixel: &'a RgbPixel,
+pub struct Assignment<'a, T> where T: ColourVal + 'a {
+    pub pixel: &'a RgbPixel<T>,
     pub cluster_ind: usize,
 }
 
 
-pub fn read_data<P>(file_path: P) -> Vec<RgbPixel>
-    where P: AsRef<Path>
-{
-    let mut reader = csv::Reader::from_file(file_path).unwrap();
-    reader.decode().map(|point| point.unwrap()).collect()
-}
-
-
-pub fn index_of_min_val<I>(floats: I) -> Option<usize>
-    where I: IntoIterator<Item = f64>,
+pub fn index_of_min_val<I, T>(floats: I) -> Option<usize>
+    where I: IntoIterator<Item = T>, T: ColourVal,
 {
     let mut iter = floats.into_iter()
                          .enumerate();
@@ -105,20 +74,21 @@ pub fn index_of_min_val<I>(floats: I) -> Option<usize>
 
 
 /// Assign points to clusters
-fn expectation<'a>(data: &'a [RgbPixel],
-                   cluster_centroids: &[RgbPixel]) -> Vec<Assignment<'a>>
+fn expectation<'a, T>(data: &'a [RgbPixel<T>],
+                      cluster_centroids: &[RgbPixel<T>]) -> Vec<Assignment<'a, T>>
+    where T: ColourVal
 {
     data.iter().map(|point| {
         let distances = cluster_centroids.iter()
-                                         .map(|cluster| point.squared_euclidean_distance(cluster));
-        let index = index_of_min_val(distances).expect("No minimum value found");
-        Assignment { pixel: point, cluster_ind: index }
+                                         .map(|cluster| point.sq_euclidean_distance(cluster));
+        let index = index_of_min_val(distances).expect("No min value found");
+        Assignment {pixel: point, cluster_ind: index}
     }).collect()
 }
 
 
-pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
-                             expected_cluster_ind: usize) -> Box<Iterator<Item = Assignment<'a>> + 'a>
+pub fn points_in_cluster<'a, T>(assignments: &'a [Assignment<T>], expected_cluster_ind: usize)
+    -> Box<Iterator<Item = Assignment<'a, T>> + 'a> where T: ColourVal
 {
     let i = assignments.into_iter()
         .cloned()
@@ -127,14 +97,15 @@ pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
 }
 
 
-pub fn count_assignments(assignments: &[Assignment],
-                         cluster_ind: usize) -> usize {
+pub fn count_assignments<T>(assignments: &[Assignment<T>],
+                            cluster_ind: usize) -> usize where T: ColourVal {
     points_in_cluster(assignments, cluster_ind).count()
 }
 
 
-pub fn sum_assigned_values(assignments: &[Assignment],
-                           cluster_ind: usize) -> RgbPixel
+pub fn sum_assigned_values<T>(assignments: &[Assignment<T>],
+                              cluster_ind: usize) -> RgbPixel<T>
+    where T: ColourVal
 {
     points_in_cluster(assignments, cluster_ind)
         .into_iter()
@@ -143,30 +114,30 @@ pub fn sum_assigned_values(assignments: &[Assignment],
 
 
 /// Update cluster centres
-fn maximisation(cluster_centroids: &mut [RgbPixel],
-                assignments: &[Assignment]) {
+fn maximisation<T>(cluster_centroids: &mut [RgbPixel<T>],
+                   assignments: &[Assignment<T>]) where T: ColourVal {
 
     for i in 0..cluster_centroids.len() {
         let num_points = count_assignments(&assignments, i);
         let sum_points = sum_assigned_values(&assignments, i);
-        cluster_centroids[i] = RgbPixel{
-            r: sum_points.r/num_points as f64,
-            g: sum_points.g/num_points as f64,
-            b: sum_points.b/num_points as f64};
+        cluster_centroids[i] = RgbPixel::new(sum_points.0.data[0] / T::from(num_points).unwrap(),
+                                             sum_points.0.data[1] / T::from(num_points).unwrap(),
+                                             sum_points.0.data[2] / T::from(num_points).unwrap())
     }
 }
 
-pub fn get_error_metric(cluster_centroids: &[RgbPixel],
-                        assignments: &[Assignment]) -> f64
+pub fn get_error_metric<T>(cluster_centroids: &[RgbPixel<T>],
+                           assignments: &[Assignment<T>]) -> T where T: ColourVal
 {
-    assignments.iter().fold(0.0, |error, assignment| {
+    assignments.iter().fold(T::zero(), |error, assignment| {
         let centroid = &cluster_centroids[assignment.cluster_ind];
-        error + assignment.pixel.squared_euclidean_distance(centroid)
+        error + assignment.pixel.sq_euclidean_distance(centroid)
     })
 }
 
-pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [RgbPixel],
-                                data: &'a [RgbPixel]) -> Vec<Assignment<'a>> {
+pub fn kmeans_one_iteration<'a, T>(cluster_centroids: &mut [RgbPixel<T>],
+                                   data: &'a [RgbPixel<T>])
+    -> Vec<Assignment<'a, T>> where T: ColourVal {
     let assignments = expectation(data, cluster_centroids);
     maximisation(cluster_centroids, &assignments);
     assignments
@@ -177,7 +148,7 @@ fn rgb_to_colour_name(rgb: RgbPixel, colours: HashMap<RgbPixel, String>) -> Stri
     let mut distances = Vec::new();
 
     for col in colours.keys() {
-        distances.push(rgb.squared_euclidean_distance(col));
+        distances.push(rgb.sq_euclidean_distance(col));
     }
 
     colours.keys()[index_of_min_val(distances)];
@@ -189,15 +160,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_squared_euclidean_distance_simple_case() {
-        let point = RgbPixel { r: 1.0, g: 1.0, b: 1.0};
-        assert_eq!(3.0, RgbPixel::black().squared_euclidean_distance(&point));
+    fn test_sq_euclidean_distance_simple_case() {
+        let point = RgbPixel::new([1.0; 3]);
+        assert_eq!(3.0, RgbPixel::black().sq_euclidean_distance(&point));
     }
 
     #[test]
-    fn test_squared_euclidean_distance_gives_0_for_same_point() {
-        let point = RgbPixel { r: -999.3, g: 10.5, b: 0.15};
-        assert_eq!(0.0, point.squared_euclidean_distance(&point));
+    fn test_sq_euclidean_distance_gives_0_for_same_point() {
+        let point = RgbPixel::new([-999.3, 10.5, 0.15]);
+        assert_eq!(0.0, point.sq_euclidean_distance(&point));
     }
 
     #[test]
@@ -242,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_sum_assigned_values_returns_0_when_none_assigned() {
-        let dp = RgbPixel { r: 5.0, g: 5.0, b: 5.0};
+        let dp = RgbPixel::new([5.0; 3]);
         let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 1 },
@@ -253,13 +224,13 @@ mod tests {
 
     #[test]
     fn test_sum_assigned_values_returns_correctly_when_some_assigned() {
-        let dp = RgbPixel { r: 1.0, g: 1.0, b: 1.0};
+        let dp = RgbPixel::new([1.0; 3]);
         let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 1 },
                            Assignment { pixel: &dp, cluster_ind: 5 },
                            Assignment { pixel: &dp, cluster_ind: 0 }];
-        assert_eq!(RgbPixel{r: 3.0, g: 3.0, b: 3.0},
+        assert_eq!(RgbPixel::new([3.0; 3]),
                    sum_assigned_values(&assignments, 0));
     }
 }

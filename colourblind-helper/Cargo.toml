@@ -7,3 +7,4 @@ authors = ["Hannah McLaughlin <h@mcla.ug>"]
 csv = "0.14"
 rustc-serialize = "0.3"
 image = "*"
+num = "0.1.36"
