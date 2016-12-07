@@ -3,23 +3,23 @@ extern crate num;
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RgbPixel(pub image::Rgb<u8>);
+pub struct RgbPixel(pub image::Rgb<f64>);
 
 
 impl RgbPixel {
 
-    pub fn new(r: u8, g: u8, b: u8) -> RgbPixel {
+    pub fn new(r: f64, g: f64, b: f64) -> RgbPixel {
         RgbPixel(image::Rgb {data: [r, g, b]})
     }
 
     pub fn black() -> RgbPixel {
-        RgbPixel::new(0_u8, 0_u8, 0_u8)
+        RgbPixel::new(0.0, 0.0, 0.0)
     }
 
     pub fn sq_euclidean_distance(&self, other: &RgbPixel) -> f64 {
         self.0.data.iter()
                    .zip(other.0.data.iter())
-                   .fold(0.0, |acc, x| acc + (*x.0 as f64).powi(2) - (*x.1 as f64).powi(2))
+                   .fold(0.0, |acc, x| acc + x.0.powi(2) - x.1.powi(2))
                    .abs()
     }
 }
@@ -36,6 +36,13 @@ impl std::ops::Add for RgbPixel {
 
         sum
     }
+}
+
+
+pub fn scale_to_255(floats: image::Rgb<f64>) -> image::Rgb<u8> {
+    image::Rgb{data: [floats.data[0] as u8,
+                      floats.data[1] as u8,
+                      floats.data[2] as u8]}
 }
 
 /// Structure for holding data point's assignments to clusters
@@ -101,9 +108,9 @@ fn maximisation(cluster_centroids: &mut [RgbPixel], assignments: &[Assignment]) 
     for i in 0..cluster_centroids.len() {
         let num_points = count_assignments(&assignments, i);
         let sum_points = sum_assigned_values(&assignments, i);
-        cluster_centroids[i] = RgbPixel::new(sum_points.0.data[0] / num_points as u8,
-                                             sum_points.0.data[1] / num_points as u8,
-                                             sum_points.0.data[2] / num_points as u8)
+        cluster_centroids[i] = RgbPixel::new(sum_points.0.data[0] / num_points as f64,
+                                             sum_points.0.data[1] / num_points as f64,
+                                             sum_points.0.data[2] / num_points as f64)
     }
 }
 
@@ -139,13 +146,13 @@ mod tests {
 
     #[test]
     fn test_sq_euclidean_distance_simple_case() {
-        let point = RgbPixel::new(1, 1, 1);
+        let point = RgbPixel::new(1.0, 1.0, 1.0);
         assert_eq!(3.0, RgbPixel::black().sq_euclidean_distance(&point));
     }
 
     #[test]
     fn test_sq_euclidean_distance_gives_0_for_same_point() {
-        let point = RgbPixel::new(200, 10, 0);
+        let point = RgbPixel::new(200.0, 10.0, 0.0);
         assert_eq!(0.0, point.sq_euclidean_distance(&point));
     }
 
@@ -191,7 +198,7 @@ mod tests {
 
     #[test]
     fn test_sum_assigned_values_returns_0_when_none_assigned() {
-        let dp = RgbPixel::new(5, 5, 5);
+        let dp = RgbPixel::new(5.0, 5.0, 5.0);
         let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 1 },
@@ -202,13 +209,13 @@ mod tests {
 
     #[test]
     fn test_sum_assigned_values_returns_correctly_when_some_assigned() {
-        let dp = RgbPixel::new(1, 1, 1);
+        let dp = RgbPixel::new(1.0, 1.0, 1.0);
         let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 0 },
                            Assignment { pixel: &dp, cluster_ind: 1 },
                            Assignment { pixel: &dp, cluster_ind: 5 },
                            Assignment { pixel: &dp, cluster_ind: 0 }];
-        assert_eq!(RgbPixel::new(3, 3, 3),
+        assert_eq!(RgbPixel::new(3.0, 3.0, 3.0),
                    sum_assigned_values(&assignments, 0));
     }
 }
