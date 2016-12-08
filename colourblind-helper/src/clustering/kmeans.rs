@@ -2,7 +2,7 @@ extern crate std;
 
 
 /// Struct to hold floating point colour channel values, for use in calculations
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Rgb {
     pub r: f64,
     pub g: f64,
@@ -39,7 +39,7 @@ impl std::ops::Add for Rgb {
 
 
 /// Structure for holding an RGB point's assignment to a cluster
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Assignment<'a> {
     pub pixel: &'a Rgb,
     pub cluster_ind: usize,
