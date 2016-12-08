@@ -10,9 +10,9 @@ use std::vec::Vec;
 
 fn rgb_scale(rgb: Rgb) -> image::Rgb<u8> {
     image::Rgb {
-        data: [(rgb.r / 255.0) as u8,
-               (rgb.g / 255.0) as u8,
-               (rgb.b / 255.0) as u8]
+        data: [(rgb.r) as u8,
+               (rgb.g) as u8,
+               (rgb.b) as u8]
     }
 }
 
