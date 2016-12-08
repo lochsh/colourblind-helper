@@ -62,7 +62,7 @@ fn expectation<'a>(data: &'a [Rgb], cluster_centroids: &[Rgb]) -> Vec<Assignment
     data.iter()
         .map(|point| {
             let distances = cluster_centroids.iter()
-                .map(|cluster| point.sq_euclidean_distance(cluster));
+                                             .map(|cluster| point.sq_euclidean_distance(cluster));
             Assignment {
                 pixel: point,
                 cluster_ind: index_of_min_val(distances).expect("No min value found"),
