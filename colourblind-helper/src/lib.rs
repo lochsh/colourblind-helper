@@ -73,8 +73,7 @@ fn expectation<'a>(data: &'a [Rgb], cluster_centroids: &[Rgb]) -> Vec<Assignment
 
 
 pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
-                             c_ind: usize)
-                             -> Box<Iterator<Item = Assignment<'a>> + 'a> {
+                             c_ind: usize) -> Box<Iterator<Item = Assignment<'a>> + 'a> {
     let i = assignments.into_iter()
         .cloned()
         .filter(move |&Assignment { cluster_ind, .. }| cluster_ind == c_ind);
@@ -116,8 +115,7 @@ pub fn get_error_metric(cluster_centroids: &[Rgb], assignments: &[Assignment]) -
 
 
 pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [Rgb],
-                                data: &'a [Rgb])
-                                -> Vec<Assignment<'a>> {
+                                data: &'a [Rgb]) -> Vec<Assignment<'a>> {
     let assignments = expectation(data, cluster_centroids);
     maximisation(cluster_centroids, &assignments);
     assignments
