@@ -18,9 +18,9 @@ impl Rgb {
     }
 
     pub fn sq_euclidean_distance(&self, other: &Rgb) -> f64 {
-        (self.r.powi(2) - other.r.powi(2) +
-         self.g.powi(2) - other.g.powi(2) +
-         self.b.powi(2) - other.b.powi(2)).abs()
+        ((self.r - other.r).powi(2) +
+         (self.g - other.g).powi(2) +
+         (self.b - other.b).powi(2)).abs()
     }
 }
 
@@ -136,6 +136,11 @@ fn rgb_to_colour_name(rgb: Rgb, colours: HashMap<Rgb, String>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_sq_euclidean_distance_example() {
+
+    }
 
     #[test]
     fn test_sq_euclidean_distance_simple_case() {
