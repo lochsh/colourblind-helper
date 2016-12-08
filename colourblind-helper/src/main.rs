@@ -43,7 +43,9 @@ fn main() {
                                      Rgb::new(0.0, 255.0, 0.0),
                                      Rgb::new(0.0, 0.0, 255.0),
                                      Rgb::new(0.0, 0.0, 0.0),
-                                     Rgb::new(255.0, 0.0, 255.0)];
+                                     Rgb::new(255.0, 0.0, 255.0),
+                                     Rgb::new(0.0, 255.0, 255.0),
+                                     Rgb::new(255.0, 255.0, 0.0)];
 
     let (mut error, mut prev_error) = (0.0, -1.0);
     let init_pixel = Rgb::black();
