@@ -2,7 +2,7 @@ extern crate std;
 
 
 /// Struct to hold floating point colour channel values, for use in calculations
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Rgb {
     pub r: f64,
     pub g: f64,
@@ -39,7 +39,7 @@ impl std::ops::Add for Rgb {
 
 
 /// Structure for holding an RGB point's assignment to a cluster
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Assignment<'a> {
     pub pixel: &'a Rgb,
     pub cluster_ind: usize,
@@ -56,7 +56,8 @@ pub fn index_of_min_val<I>(floats: I) -> Option<usize> where I: IntoIterator<Ite
     };
 
     iter.next().map(|(i, min)| {
-        iter.fold((i, min), fold_func).0})
+        iter.fold((i, min), fold_func).0
+    })
 }
 
 
@@ -123,16 +124,6 @@ pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [Rgb],
     maximisation(cluster_centroids, &assignments);
     assignments
 }
-
-// fn rgb_to_colour_name(rgb: Rgb, colours: HashMap<Rgb, String>) -> String {
-// let mut distances = Vec::new();
-//
-// for col in colours.keys() {
-// distances.push(rgb.sq_euclidean_distance(col));
-// }
-//
-// colours.keys()[index_of_min_val(distances)];
-// }
 
 
 #[cfg(test)]
