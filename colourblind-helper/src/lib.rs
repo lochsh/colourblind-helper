@@ -3,12 +3,11 @@
 pub struct Rgb {
     pub r: f64,
     pub g: f64,
-    pub b: f64
+    pub b: f64,
 }
 
 
 impl Rgb {
-
     pub fn new(r: f64, g: f64, b: f64) -> Rgb {
         Rgb { r: r, g: g, b: b }
     }
@@ -44,40 +43,41 @@ pub struct Assignment<'a> {
 }
 
 
-pub fn index_of_min_val<I>(floats: I) -> Option<usize>
-    where I: IntoIterator<Item = f64>
-{
+pub fn index_of_min_val<I>(floats: I) -> Option<usize> where I: IntoIterator<Item = f64> {
     let mut iter = floats.into_iter()
                          .enumerate();
 
-    iter.next()
-        .map(|(i, min)| {
-            iter.fold((i, min), |(min_i, min_val), (i, val)| {
-                if val < min_val { (i, val) }
-                else { (min_i, min_val) }
-            }).0
-        })
+    let fold_func = |(min_i, min_val), (i, val)| {
+                        if val < min_val { (i, val) }
+                        else { (min_i, min_val) }
+    };
+
+    iter.next().map(|(i, min)| {
+        iter.fold((i, min), fold_func).0})
 }
 
 
 /// Assign points to clusters
 fn expectation<'a>(data: &'a [Rgb], cluster_centroids: &[Rgb]) -> Vec<Assignment<'a>> {
-    data.iter().map(|point| {
-        let distances = cluster_centroids.iter()
-                                         .map(|cluster| point.sq_euclidean_distance(cluster));
-        Assignment {
-            pixel: point,
-            cluster_ind: index_of_min_val(distances).expect("No min value found")
-        }
-    }).collect()
+    data.iter()
+        .map(|point| {
+            let distances = cluster_centroids.iter()
+                .map(|cluster| point.sq_euclidean_distance(cluster));
+            Assignment {
+                pixel: point,
+                cluster_ind: index_of_min_val(distances).expect("No min value found"),
+            }
+        })
+        .collect()
 }
 
 
 pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
-                             c_ind: usize) -> Box<Iterator<Item = Assignment<'a>> + 'a> {
+                             c_ind: usize)
+                             -> Box<Iterator<Item = Assignment<'a>> + 'a> {
     let i = assignments.into_iter()
-                       .cloned()
-                       .filter(move |&Assignment { cluster_ind, .. }| cluster_ind == c_ind);
+        .cloned()
+        .filter(move |&Assignment { cluster_ind, .. }| cluster_ind == c_ind);
     Box::new(i)
 }
 
@@ -88,8 +88,9 @@ pub fn count_assignments(assignments: &[Assignment], cluster_ind: usize) -> usiz
 
 
 pub fn sum_assigned_values(assignments: &[Assignment], cluster_ind: usize) -> Rgb {
-    points_in_cluster(assignments, cluster_ind).into_iter()
-                                               .fold(Rgb::black(), |acc, a| acc + *a.pixel)
+    points_in_cluster(assignments, cluster_ind)
+        .into_iter()
+        .fold(Rgb::black(), |acc, a| acc + *a.pixel)
 }
 
 
@@ -115,22 +116,22 @@ pub fn get_error_metric(cluster_centroids: &[Rgb], assignments: &[Assignment]) -
 
 
 pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [Rgb],
-                                data: &'a [Rgb]) -> Vec<Assignment<'a>> {
+                                data: &'a [Rgb])
+                                -> Vec<Assignment<'a>> {
     let assignments = expectation(data, cluster_centroids);
     maximisation(cluster_centroids, &assignments);
     assignments
 }
 
-/*
-fn rgb_to_colour_name(rgb: Rgb, colours: HashMap<Rgb, String>) -> String {
-    let mut distances = Vec::new();
-
-    for col in colours.keys() {
-        distances.push(rgb.sq_euclidean_distance(col));
-    }
-
-    colours.keys()[index_of_min_val(distances)];
-}*/
+// fn rgb_to_colour_name(rgb: Rgb, colours: HashMap<Rgb, String>) -> String {
+// let mut distances = Vec::new();
+//
+// for col in colours.keys() {
+// distances.push(rgb.sq_euclidean_distance(col));
+// }
+//
+// colours.keys()[index_of_min_val(distances)];
+// }
 
 
 #[cfg(test)]
@@ -138,9 +139,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sq_euclidean_distance_example() {
-
-    }
+    fn test_sq_euclidean_distance_example() {}
 
     #[test]
     fn test_sq_euclidean_distance_simple_case() {
@@ -175,44 +174,104 @@ mod tests {
     #[test]
     fn test_count_assignments_returns_0_when_no_occurences() {
         let dp = Rgb::black();
-        let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 1 },
-                           Assignment { pixel: &dp, cluster_ind: 5 },
-                           Assignment { pixel: &dp, cluster_ind: 0 }];
+        let assignments = [Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 1,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 5,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           }];
         assert_eq!(0, count_assignments(&assignments, 4))
     }
 
     #[test]
     fn test_count_assignments_returns_3_when_3_occurences() {
         let dp = Rgb::black();
-        let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 1 },
-                           Assignment { pixel: &dp, cluster_ind: 5 },
-                           Assignment { pixel: &dp, cluster_ind: 0 }];
+        let assignments = [Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 1,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 5,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           }];
         assert_eq!(3, count_assignments(&assignments, 0));
     }
 
     #[test]
     fn test_sum_assigned_values_returns_0_when_none_assigned() {
         let dp = Rgb::new(5.0, 5.0, 5.0);
-        let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 1 },
-                           Assignment { pixel: &dp, cluster_ind: 5 },
-                           Assignment { pixel: &dp, cluster_ind: 0 }];
+        let assignments = [Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 1,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 5,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           }];
         assert_eq!(Rgb::black(), sum_assigned_values(&assignments, 2))
     }
 
     #[test]
     fn test_sum_assigned_values_returns_correctly_when_some_assigned() {
         let dp = Rgb::new(1.0, 1.0, 1.0);
-        let assignments = [Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 0 },
-                           Assignment { pixel: &dp, cluster_ind: 1 },
-                           Assignment { pixel: &dp, cluster_ind: 5 },
-                           Assignment { pixel: &dp, cluster_ind: 0 }];
+        let assignments = [Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 1,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 5,
+                           },
+                           Assignment {
+                               pixel: &dp,
+                               cluster_ind: 0,
+                           }];
         assert_eq!(Rgb::new(3.0, 3.0, 3.0),
                    sum_assigned_values(&assignments, 0));
     }
