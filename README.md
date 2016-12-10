@@ -4,6 +4,9 @@
 
 ### Helpful in particular to colourblind artists working from reference images
 
+[![Build 
+Status](https://travis-ci.org/lochsh/colourblind-helper.svg?branch=master)](https://travis-ci.org/lochsh/colourblind-helper)
+
 This project is still under development.  Currently have implemented K means 
 clustering for grouping blocks of colour.
 
