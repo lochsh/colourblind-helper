@@ -45,10 +45,6 @@ pub fn choose_centres(data: &Vec<kmeans::Rgb>, num_centroids: usize) -> Vec<kmea
                                             &distances)).ind_sample(&mut rand::thread_rng()));
     }
 
-    println!("printing centroids");
-    for c in &centroids {
-        println!("{:?}", c);
-    }
     centroids
 }
 
