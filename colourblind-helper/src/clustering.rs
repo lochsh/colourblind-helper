@@ -1,134 +1,151 @@
-extern crate std;
+pub mod kmeans {
+    use super::super::utils::Rgb;
 
-
-/// Struct to hold floating point colour channel values, for use in calculations
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Rgb {
-    pub r: f64,
-    pub g: f64,
-    pub b: f64,
-}
-
-
-impl Rgb {
-    pub fn new(r: f64, g: f64, b: f64) -> Rgb {
-        Rgb { r: r, g: g, b: b }
+    /// Structure for holding an RGB point's assignment to a cluster
+    #[derive(Clone, Debug)]
+    pub struct Assignment<'a> {
+        pub pixel: &'a Rgb,
+        pub cluster_ind: usize,
     }
 
-    pub fn black() -> Rgb {
-        Rgb::new(0.0, 0.0, 0.0)
+
+    pub fn index_of_min_val(floats: Vec<f64>) -> Option<usize> {
+        let min_val = floats.iter().cloned().fold(0./0., f64::min);
+        floats.iter().position(|x| *x == min_val)
     }
 
-    pub fn sq_euclidean_distance(&self, other: &Rgb) -> f64 {
-        ((self.r - other.r).powi(2) +
-         (self.g - other.g).powi(2) +
-         (self.b - other.b).powi(2)).abs()
+
+    /// Assign points to clusters
+    fn expectation<'a>(data: &'a [Rgb], cluster_centroids: &[Rgb]) -> Vec<Assignment<'a>> {
+        data.iter()
+            .map(|point| {
+                let distances = cluster_centroids.iter()
+                                                 .map(|clust| point.sq_euclidean_distance(clust))
+                                                 .collect();
+                Assignment {
+                    pixel: point,
+                    cluster_ind: index_of_min_val(distances).expect("No min value found"),
+                }
+            })
+            .collect()
     }
-}
 
 
-impl std::ops::Add for Rgb {
-    type Output = Rgb;
-
-    fn add(self, other: Rgb) -> Rgb {
-        Rgb::new(self.r + other.r,
-                 self.g + other.g,
-                 self.b + other.b)
+    pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
+                                 c_ind: usize) -> Box<Iterator<Item = Assignment<'a>> + 'a> {
+        let i = assignments.into_iter()
+            .cloned()
+            .filter(move |&Assignment { cluster_ind, .. }| cluster_ind == c_ind);
+        Box::new(i)
     }
-}
 
 
-/// Structure for holding an RGB point's assignment to a cluster
-#[derive(Clone, Debug)]
-pub struct Assignment<'a> {
-    pub pixel: &'a Rgb,
-    pub cluster_ind: usize,
-}
+    pub fn count_assignments(assignments: &[Assignment], cluster_ind: usize) -> usize {
+        points_in_cluster(assignments, cluster_ind).count()
+    }
 
 
-pub fn index_of_min_val<I>(floats: I) -> Option<usize> where I: IntoIterator<Item = f64> {
-    let mut iter = floats.into_iter()
-                         .enumerate();
-
-    let fold_func = |(min_i, min_val), (i, val)| {
-                        if val < min_val { (i, val) }
-                        else { (min_i, min_val) }
-    };
-
-    iter.next().map(|(i, min)| {
-        iter.fold((i, min), fold_func).0
-    })
-}
+    pub fn sum_assigned_values(assignments: &[Assignment], cluster_ind: usize) -> Rgb {
+        points_in_cluster(assignments, cluster_ind)
+            .into_iter()
+            .fold(Rgb::black(), |acc, a| acc + *a.pixel)
+    }
 
 
-/// Assign points to clusters
-fn expectation<'a>(data: &'a [Rgb], cluster_centroids: &[Rgb]) -> Vec<Assignment<'a>> {
-    data.iter()
-        .map(|point| {
-            let distances = cluster_centroids.iter()
-                                             .map(|cluster| point.sq_euclidean_distance(cluster));
-            Assignment {
-                pixel: point,
-                cluster_ind: index_of_min_val(distances).expect("No min value found"),
-            }
+    /// Update cluster centres
+    fn maximisation(cluster_centroids: &mut [Rgb], assignments: &[Assignment]) {
+
+        for i in 0..cluster_centroids.len() {
+            let num_points = count_assignments(&assignments, i);
+            let sum_points = sum_assigned_values(&assignments, i);
+
+            cluster_centroids[i] = Rgb::new(sum_points.r / num_points as f64,
+                                            sum_points.g / num_points as f64,
+                                            sum_points.b / num_points as f64)
+        }
+    }
+
+
+    pub fn get_error_metric(cluster_centroids: &[Rgb], assignments: &[Assignment]) -> f64 {
+        assignments.iter().fold(0.0, |error, asgmnt| {
+            error + asgmnt.pixel.sq_euclidean_distance(&cluster_centroids[asgmnt.cluster_ind])
         })
-        .collect()
-}
+    }
 
 
-pub fn points_in_cluster<'a>(assignments: &'a [Assignment],
-                             c_ind: usize) -> Box<Iterator<Item = Assignment<'a>> + 'a> {
-    let i = assignments.into_iter()
-        .cloned()
-        .filter(move |&Assignment { cluster_ind, .. }| cluster_ind == c_ind);
-    Box::new(i)
-}
-
-
-pub fn count_assignments(assignments: &[Assignment], cluster_ind: usize) -> usize {
-    points_in_cluster(assignments, cluster_ind).count()
-}
-
-
-pub fn sum_assigned_values(assignments: &[Assignment], cluster_ind: usize) -> Rgb {
-    points_in_cluster(assignments, cluster_ind)
-        .into_iter()
-        .fold(Rgb::black(), |acc, a| acc + *a.pixel)
-}
-
-
-/// Update cluster centres
-fn maximisation(cluster_centroids: &mut [Rgb], assignments: &[Assignment]) {
-
-    for i in 0..cluster_centroids.len() {
-        let num_points = count_assignments(&assignments, i);
-        let sum_points = sum_assigned_values(&assignments, i);
-
-        cluster_centroids[i] = Rgb::new(sum_points.r / num_points as f64,
-                                        sum_points.g / num_points as f64,
-                                        sum_points.b / num_points as f64)
+    pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [Rgb],
+                                    data: &'a [Rgb]) -> Vec<Assignment<'a>> {
+        let assignments = expectation(data, cluster_centroids);
+        maximisation(cluster_centroids, &assignments);
+        assignments
     }
 }
 
+pub mod init {
+    use super::super::utils::Rgb;
+    extern crate rand;
 
-pub fn get_error_metric(cluster_centroids: &[Rgb], assignments: &[Assignment]) -> f64 {
-    assignments.iter().fold(0.0, |error, assignment| {
-        error + assignment.pixel.sq_euclidean_distance(&cluster_centroids[assignment.cluster_ind])
-    })
-}
+    use self::rand::Rng;
+    use self::rand::distributions::{Weighted, WeightedChoice, IndependentSample};
 
 
-pub fn kmeans_one_iteration<'a>(cluster_centroids: &mut [Rgb],
-                                data: &'a [Rgb]) -> Vec<Assignment<'a>> {
-    let assignments = expectation(data, cluster_centroids);
-    maximisation(cluster_centroids, &assignments);
-    assignments
+    pub fn compute_distances(data: &Vec<Rgb>, centroids: &Vec<Rgb>) -> Vec<f64> {
+        let mut distances = Vec::<f64>::new();
+
+        for d in data {
+            distances.push(centroids.iter()
+                                    .cloned()
+                                    .map(|x| x.sq_euclidean_distance(d))
+                                    .fold(0./0., f64::min));
+        }
+
+        distances
+    }
+
+
+    fn compute_weights<'a>(data: &'a Vec<Rgb>, distances: &Vec<f64>) -> Vec<Weighted<&'a Rgb>> {
+        let mut weights = Vec::new();
+        let factor: f64 = distances.iter()
+                                   .map(|x| x.powi(2))
+                                   .sum();
+
+        for d in data.iter().zip(distances.iter()) {
+            weights.push(Weighted {item: d.0,
+                                   weight: (*d.1/factor * u32::max_value() as f64) as u32});
+        }
+
+        weights
+    }
+
+
+    pub fn choose_centres(data: &Vec<Rgb>, num_centroids: usize) -> Vec<Rgb> {
+        let mut centroids = vec![*rand::thread_rng().choose(data).unwrap()];
+
+        for _ in 0..num_centroids {
+            let distances = compute_distances(&data, &centroids);
+
+            centroids.push(*WeightedChoice::new(&mut compute_weights(&data,
+                                                &distances)).ind_sample(&mut rand::thread_rng()));
+        }
+
+        centroids
+    }
 }
 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::kmeans::*;
+    use super::init::*;
+    use super::super::utils::*;
+
+    #[test]
+    fn test_compute_distances() {
+        let data = vec![Rgb {r: 0., g: 0., b: 0.}];
+        let centroids = vec![Rgb {r: 0., g: 0., b: 0.},
+                             Rgb {r: 10.4, g: 1., b: 4.9}];
+        assert_eq!(vec![0.0], compute_distances(&data, &centroids));
+    }
 
     #[test]
     fn test_sq_euclidean_distance_example() {
