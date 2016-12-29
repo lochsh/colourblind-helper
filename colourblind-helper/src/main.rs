@@ -38,14 +38,7 @@ fn main() {
         pixels.push(Rgb::new(p.2.data[0] as f64, p.2.data[1] as f64, p.2.data[2] as f64));
     }
 
-    let mut cluster_centroids = vec![Rgb::black(),
-                                     Rgb::new(255.0, 0.0, 0.0),
-                                     Rgb::new(0.0, 255.0, 0.0),
-                                     Rgb::new(0.0, 0.0, 255.0),
-                                     Rgb::new(0.0, 0.0, 0.0),
-                                     Rgb::new(255.0, 0.0, 255.0),
-                                     Rgb::new(0.0, 255.0, 255.0),
-                                     Rgb::new(255.0, 255.0, 0.0)];
+    let mut cluster_centroids = choose_centres(&pixels, 10);
 
     let (mut error, mut prev_error) = (0.0, -1.0);
     let init_pixel = Rgb::black();
