@@ -4,8 +4,5 @@ version = "0.1.0"
 authors = ["Hannah McLaughlin <h@mcla.ug>"]
 
 [dependencies]
-csv = "0.14"
-rustc-serialize = "0.3"
 image = "*"
-num = "0.1.36"
-rand = "0.3"
+imageproc = "*"
