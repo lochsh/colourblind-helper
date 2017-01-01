@@ -1,6 +1,9 @@
 extern crate image;
+extern crate itertools;
+use itertools::Itertools;
 
 
+#[derive(Copy, Clone)]
 enum Channel {
     Red,
     Green,
@@ -39,25 +42,14 @@ fn channel_change(rgb_image: &image::RgbImage, x: u32, y: u32,
 
 
 fn colour_change(rgb_image: &image::RgbImage, x: u32, y: u32) -> f64 {
-    ((channel_change(rgb_image, x, y, Channel::Blue, &Axis::X) -
-      channel_change(rgb_image, x, y, Channel::Green, &Axis::X)).powi(2) +
+    let channels = [Channel::Red, Channel::Green, Channel::Blue];
+    let pairs = channels.into_iter().cloned().combinations(2);
 
-     (channel_change(rgb_image, x, y, Channel::Red, &Axis::X) -
-      channel_change(rgb_image, x, y, Channel::Blue, &Axis::X)).powi(2) +
-
-     (channel_change(rgb_image, x, y, Channel::Green, &Axis::X) -
-      channel_change(rgb_image, x, y, Channel::Red, &Axis::X)).powi(2) +
-
-     (channel_change(rgb_image, x, y, Channel::Blue, &Axis::Y) -
-      channel_change(rgb_image, x, y, Channel::Green, &Axis::Y)).powi(2) +
-
-     (channel_change(rgb_image, x, y, Channel::Red, &Axis::Y) -
-      channel_change(rgb_image, x, y, Channel::Blue, &Axis::Y)).powi(2) +
-
-     (channel_change(rgb_image, x, y, Channel::Green, &Axis::Y) -
-      channel_change(rgb_image, x, y, Channel::Red, &Axis::Y)).powi(2)).sqrt()
+    pairs.map(|pair| (channel_change(rgb_image, x, y, pair[0], &Axis::X) -
+                      channel_change(rgb_image, x, y, pair[1], &Axis::X)).powi(2) +
+                     (channel_change(rgb_image, x, y, pair[0], &Axis::Y) -
+                      channel_change(rgb_image, x, y, pair[1], &Axis::Y)).powi(2)).sum::<f64>()
 }
-
 
 fn brightness_change(rgb_image: &image::RgbImage, x: u32, y: u32, axis: &Axis) -> f64 {
     channel_change(rgb_image, x, y, Channel::Red, axis) +

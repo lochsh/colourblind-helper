@@ -6,3 +6,4 @@ authors = ["Hannah McLaughlin <h@mcla.ug>"]
 [dependencies]
 image = "*"
 imageproc = "*"
+itertools = "0.5.4"
