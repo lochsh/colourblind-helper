@@ -1,4 +1,6 @@
 extern crate image;
+use image::RgbImage;
+
 extern crate itertools;
 use itertools::Itertools;
 
@@ -18,8 +20,7 @@ enum Axis {
 }
 
 
-fn channel_change(rgb_image: &image::RgbImage, x: u32, y: u32,
-                  channel: Channel, axis: Axis) -> f64 {
+fn channel_change(rgb_image: &RgbImage, x: u32, y: u32, channel: Channel, axis: Axis) -> f64 {
     let c: usize;
 
     match channel {
@@ -42,7 +43,7 @@ fn channel_change(rgb_image: &image::RgbImage, x: u32, y: u32,
 }
 
 
-fn colour_change(rgb_image: &image::RgbImage, x: u32, y: u32) -> f64 {
+fn colour_change(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
     let channels = [Channel::Red, Channel::Green, Channel::Blue];
     let pairs = channels.iter().cloned().combinations(2);
 
@@ -52,14 +53,14 @@ fn colour_change(rgb_image: &image::RgbImage, x: u32, y: u32) -> f64 {
                       channel_change(rgb_image, x, y, pair[1], Axis::Y)).powi(2)).sum::<f64>()
 }
 
-fn brightness_change(rgb_image: &image::RgbImage, x: u32, y: u32, axis: Axis) -> f64 {
+fn brightness_change(rgb_image: &RgbImage, x: u32, y: u32, axis: Axis) -> f64 {
     channel_change(rgb_image, x, y, Channel::Red, axis) +
     channel_change(rgb_image, x, y, Channel::Green, axis) +
     channel_change(rgb_image, x, y, Channel::Blue, axis)
 }
 
 
-pub fn edge_strength(rgb_image: image::RgbImage, x: u32, y: u32) -> f64 {
+pub fn edge_strength(rgb_image: RgbImage, x: u32, y: u32) -> f64 {
     brightness_change(&rgb_image, x, y, Axis::X).powi(2) +
     brightness_change(&rgb_image, x, y, Axis::Y).powi(2) +
     colour_change(&rgb_image, x, y) * 3.0
