@@ -43,7 +43,7 @@ fn channel_change(rgb_image: &image::RgbImage, x: u32, y: u32,
 
 fn colour_change(rgb_image: &image::RgbImage, x: u32, y: u32) -> f64 {
     let channels = [Channel::Red, Channel::Green, Channel::Blue];
-    let pairs = channels.into_iter().cloned().combinations(2);
+    let pairs = channels.iter().cloned().combinations(2);
 
     pairs.map(|pair| (channel_change(rgb_image, x, y, pair[0], &Axis::X) -
                       channel_change(rgb_image, x, y, pair[1], &Axis::X)).powi(2) +
@@ -58,9 +58,8 @@ fn brightness_change(rgb_image: &image::RgbImage, x: u32, y: u32, axis: &Axis) -
 }
 
 
-fn edge_strength(rgb_image: image::RgbImage, x: u32, y: u32) -> f64 {
+pub fn edge_strength(rgb_image: image::RgbImage, x: u32, y: u32) -> f64 {
     brightness_change(&rgb_image, x, y, &Axis::X).powi(2) +
     brightness_change(&rgb_image, x, y, &Axis::Y).powi(2) +
     colour_change(&rgb_image, x, y) * 3.0
-
 }
