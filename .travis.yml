@@ -8,6 +8,3 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
-
-before_script:
-  - cd colourblind-helper
