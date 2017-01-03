@@ -157,9 +157,7 @@ quickcheck! {
 
         if x >= img.width() || y >= img.height() {
             TestResult::discard()
-        }
-
-        else {
+        } else {
             TestResult::from_bool(channel_change(&RgbImage::new(10, 10),
                                                  x, y, channel, axis) == 0.0)
         }
@@ -170,9 +168,7 @@ quickcheck! {
 
         if x >= img.width() || y >= img.height() {
             TestResult::discard()
-        }
-
-        else {
+        } else {
             TestResult::from_bool(colour_change(&RgbImage::new(10, 10), x, y) == 0.0)
         }
     }
