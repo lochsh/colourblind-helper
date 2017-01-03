@@ -6,3 +6,8 @@ authors = ["Hannah McLaughlin <h@mcla.ug>"]
 [dependencies]
 image = "*"
 itertools = "0.5.4"
+
+[dev-dependencies]
+quickcheck = "0.3"
+rand = "0.3"
+
