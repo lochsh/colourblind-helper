@@ -20,24 +20,24 @@ enum Axis {
 }
 
 
-/// Bound image co-ordinate
+/// Ceiling bounded image co-ordinate
 ///
 /// Bounded image co-ordinate, e.g. x, with a maximum value.
 /// Used to prevent out-of-bounds access attempts and overflow +/- attempts.
 #[derive(Copy, Clone)]
-struct ImageCoord {
+struct Bounded {
     i: u32,
     max_i: u32,
 }
 
 
-impl ImageCoord {
+impl Bounded {
 
-    fn new(i: u32, max_i: u32) -> ImageCoord {
+    fn new(i: u32, max_i: u32) -> Bounded {
         if i < max_i {
-            ImageCoord { i: i, max_i: max_i - 1}
+            Bounded { i: i, max_i: max_i - 1 }
         } else {
-            ImageCoord { i: max_i - 1, max_i: max_i - 1}
+            Bounded { i: max_i - 1, max_i: max_i - 1 }
         }
     }
 
@@ -64,8 +64,8 @@ fn channel_change(rgb_image: &RgbImage, x: u32, y: u32, channel: Channel, axis: 
         Channel::Green => c = 2,
     }
 
-    let x_sat = ImageCoord::new(x, rgb_image.width());
-    let y_sat = ImageCoord::new(y, rgb_image.height());
+    let x_sat = Bounded::new(x, rgb_image.width());
+    let y_sat = Bounded::new(y, rgb_image.height());
 
     match axis {
         Axis::X => rgb_image.get_pixel(x_sat.sub(2), y)[c] as f64 +
@@ -173,19 +173,24 @@ quickcheck! {
         }
     }
 
-}
+    fn test_brightness_change_zero_on_black_image(x: u32, y: u32, axis: Axis) -> TestResult{
+        let img = RgbImage::new(10, 10);
 
+        if x >= img.width() || y >= img.height() {
+            TestResult::discard()
+        } else {
+            TestResult::from_bool(brightness_change(&img, x, y, axis) == 0.0)
+        }
+    }
 
+    fn test_edge_strength_zero_on_black_image(x: u32, y: u32) -> TestResult{
+        let img = RgbImage::new(10, 10);
 
-#[test]
-fn test_brightness_change_zero_on_black_image() {
-    let img = RgbImage::new(10, 10);
-    assert_eq!(brightness_change(&img, 4, 4, Axis::X), 0.0);
-}
+        if x >= img.width() || y >= img.height() {
+            TestResult::discard()
+        } else {
+            TestResult::from_bool(edge_strength(img, x, y) == 0.0)
+        }
+    }
 
-
-#[test]
-fn test_edge_strength_zero_on_black_image() {
-    let img = RgbImage::new(10, 10);
-    assert_eq!(edge_strength(img, 4, 4), 0.0);
 }
