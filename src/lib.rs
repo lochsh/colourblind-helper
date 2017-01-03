@@ -34,10 +34,10 @@ struct Bounded {
 impl Bounded {
 
     fn new(i: u32, max_i: u32) -> Bounded {
-        if i < max_i {
-            Bounded { i: i, max_i: max_i - 1 }
+        if i <= max_i {
+            Bounded { i: i, max_i: max_i }
         } else {
-            Bounded { i: max_i - 1, max_i: max_i - 1 }
+            Bounded { i: max_i, max_i: max_i }
         }
     }
 
@@ -64,8 +64,8 @@ fn channel_change(rgb_image: &RgbImage, x: u32, y: u32, channel: Channel, axis: 
         Channel::Green => c = 2,
     }
 
-    let x_sat = Bounded::new(x, rgb_image.width());
-    let y_sat = Bounded::new(y, rgb_image.height());
+    let x_sat = Bounded::new(x, rgb_image.width() - 1);
+    let y_sat = Bounded::new(y, rgb_image.height() - 1);
 
     match axis {
         Axis::X => rgb_image.get_pixel(x_sat.sub(2), y)[c] as f64 +
