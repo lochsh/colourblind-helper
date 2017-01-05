@@ -8,16 +8,6 @@ use itertools::{Itertools, multizip};
 type EdgeImage = ImageBuffer<Luma<f64>, Vec<f64>>;
 
 
-pub fn f64_pixels_to_u8(edge_image: EdgeImage) -> image::GrayImage {
-    let mut gray_image = GrayImage::new(edge_image.width(), edge_image.height());
-    for (x, y, p) in edge_image.enumerate_pixels() {
-        gray_image.put_pixel(x, y, Luma { data: [(p[0] / 255.0) as u8] });
-    }
-
-    gray_image
-}
-
-
 #[derive(Copy, Clone, Debug)]
 enum Channel {
     Red,
@@ -119,7 +109,7 @@ fn edge_strength(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
 }
 
 
-fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
+pub fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
     let (width, height) = rgb_image.dimensions();
     (0..(width * height)).map(|i| edge_strength(rgb_image, i % width, i / width))
                          .collect::<Vec<f64>>()
@@ -129,8 +119,8 @@ fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
 fn edge_orientations(rgb_image: &RgbImage) -> Vec<Axis> {
 
     fn axis_max(rgb_image: &RgbImage, x: u32, y: u32) -> Axis {
-        let diff = brightness_change(rgb_image, x, y, Axis::X).abs() -
-                   brightness_change(rgb_image, x, y, Axis::Y).abs();
+        let diff = brightness_change(rgb_image, x, y, Axis::X) -
+                   brightness_change(rgb_image, x, y, Axis::Y);
 
         if diff >= 0.0 { Axis::X } else { Axis::Y }
     }
@@ -151,23 +141,33 @@ pub fn non_max_suppression(rgb_image: &RgbImage) -> EdgeImage {
         let x_sat = Bounded::new(x, rgb_image.width());
         let y_sat = Bounded::new(y, rgb_image.height());
 
-        let x_pixel_group = ((x_sat.sub(1))..(x_sat.add(2))).map(|i| edge_image.get_pixel(i, y)[0].abs());
-        let y_pixel_group = ((y_sat.sub(1))..(y_sat.add(2))).map(|i| edge_image.get_pixel(x, i)[0].abs());
+        let x_pixel_group = ((x_sat.sub(1))..(x_sat.add(2))).map(|i| edge_image.get_pixel(i, y)[0]);
+        let y_pixel_group = ((y_sat.sub(1))..(y_sat.add(2))).map(|i| edge_image.get_pixel(x, i)[0]);
 
         match d {
-            Axis::X => if edge_image.get_pixel(x, y)[0].abs() != x_pixel_group.fold(0./0.,
-                                                                                    f64::max) {
-                            supp_image.put_pixel(x, y, Luma { data: [0.0] });
+            Axis::X => if edge_image.get_pixel(x, y)[0] != x_pixel_group.fold(0./0., f64::max) {
+                            supp_image.put_pixel(x, y, Luma { data: [1.0] });
                        } else { },
 
-            Axis::Y => if edge_image.get_pixel(x, y)[0].abs() != y_pixel_group.fold(0./0.,
-                                                                                    f64::max) {
-                           supp_image.put_pixel(x, y, Luma { data: [0.0] });
+            Axis::Y => if edge_image.get_pixel(x, y)[0] != y_pixel_group.fold(0./0., f64::max) {
+                           supp_image.put_pixel(x, y, Luma { data: [1.0] });
                        } else { }
         }
     }
 
     supp_image
+}
+
+
+pub fn f64_pixels_to_u8(edge_image: EdgeImage) -> image::GrayImage {
+    let mut gray_image = GrayImage::new(edge_image.width(), edge_image.height());
+    let scale_factor = edge_image.pixels().map(|p| p[0]).fold(0./0., f64::max);
+
+    for (x, y, p) in edge_image.enumerate_pixels() {
+        gray_image.put_pixel(x, y, Luma { data: [(255.0 * p[0] / scale_factor) as u8] });
+    }
+
+    gray_image
 }
 
 
