@@ -2,7 +2,7 @@ extern crate image;
 use image::RgbImage;
 
 extern crate itertools;
-use itertools::Itertools;
+use itertools::{Itertools, multizip};
 
 
 #[derive(Copy, Clone, Debug)]
@@ -99,10 +99,32 @@ fn brightness_change(rgb_image: &RgbImage, x: u32, y: u32, axis: Axis) -> f64 {
 }
 
 
-pub fn edge_strength(rgb_image: RgbImage, x: u32, y: u32) -> f64 {
-    brightness_change(&rgb_image, x, y, Axis::X).powi(2) +
-    brightness_change(&rgb_image, x, y, Axis::Y).powi(2) +
-    colour_change(&rgb_image, x, y) * 3.0
+pub fn edge_strength(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
+    brightness_change(rgb_image, x, y, Axis::X).powi(2) +
+    brightness_change(rgb_image, x, y, Axis::Y).powi(2) +
+    colour_change(rgb_image, x, y) * 3.0
+}
+
+
+fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
+    multizip((0..rgb_image.width(),
+              0..rgb_image.height())).map(|t| edge_strength(rgb_image, t.0, t.1))
+                                     .collect::<Vec<f64>>()
+}
+
+
+fn edge_orientations(rgb_image: &RgbImage) -> Vec<Axis> {
+
+    fn axis_max(rgb_image: &RgbImage, x: u32, y: u32) -> Axis {
+        let diff = brightness_change(rgb_image, x, y, Axis::X).abs() -
+                   brightness_change(rgb_image, x, y, Axis::Y).abs();
+
+        if diff >= 0.0 { Axis::X } else { Axis::Y }
+    }
+
+    multizip((0..rgb_image.width(),
+              0..rgb_image.height())).map(|t| axis_max(rgb_image, t.0, t.1))
+                                     .collect::<Vec<Axis>>()
 }
 
 
