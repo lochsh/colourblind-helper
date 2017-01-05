@@ -253,7 +253,7 @@ quickcheck! {
         if x >= img.width() || y >= img.height() {
             TestResult::discard()
         } else {
-            TestResult::from_bool(edge_strength(img, x, y) == 0.0)
+            TestResult::from_bool(edge_strength(&img, x, y) == 0.0)
         }
     }
 

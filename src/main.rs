@@ -7,6 +7,6 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let img = image::open(&Path::new(&args[1])).unwrap().to_rgb();
 
-    let edge_img = f64_pixels_to_u8(non_max_suppression(&img)).save("test.jpg").unwrap();
+    f64_pixels_to_u8(non_max_suppression(&img)).save("test.jpg").unwrap();
 }
 
