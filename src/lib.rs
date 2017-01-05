@@ -1,8 +1,21 @@
 extern crate image;
-use image::RgbImage;
+use image::{RgbImage, Luma, ImageBuffer, GrayImage};
 
 extern crate itertools;
 use itertools::{Itertools, multizip};
+
+
+type EdgeImage = ImageBuffer<Luma<f64>, Vec<f64>>;
+
+
+pub fn f64_pixels_to_u8(edge_image: EdgeImage) -> image::GrayImage {
+    let mut gray_image = GrayImage::new(edge_image.width(), edge_image.height());
+    for (x, y, p) in edge_image.enumerate_pixels() {
+        gray_image.put_pixel(x, y, Luma { data: [(p[0] / 255.0) as u8] });
+    }
+
+    gray_image
+}
 
 
 #[derive(Copy, Clone, Debug)]
@@ -99,7 +112,7 @@ fn brightness_change(rgb_image: &RgbImage, x: u32, y: u32, axis: Axis) -> f64 {
 }
 
 
-pub fn edge_strength(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
+fn edge_strength(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
     brightness_change(rgb_image, x, y, Axis::X).powi(2) +
     brightness_change(rgb_image, x, y, Axis::Y).powi(2) +
     colour_change(rgb_image, x, y) * 3.0
@@ -107,9 +120,9 @@ pub fn edge_strength(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
 
 
 fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
-    multizip((0..rgb_image.width(),
-              0..rgb_image.height())).map(|t| edge_strength(rgb_image, t.0, t.1))
-                                     .collect::<Vec<f64>>()
+    let (width, height) = rgb_image.dimensions();
+    (0..(width * height)).map(|i| edge_strength(rgb_image, i % width, i / width))
+                         .collect::<Vec<f64>>()
 }
 
 
@@ -122,16 +135,45 @@ fn edge_orientations(rgb_image: &RgbImage) -> Vec<Axis> {
         if diff >= 0.0 { Axis::X } else { Axis::Y }
     }
 
-    multizip((0..rgb_image.width(),
-              0..rgb_image.height())).map(|t| axis_max(rgb_image, t.0, t.1))
-                                     .collect::<Vec<Axis>>()
+    let (width, height) = rgb_image.dimensions();
+    (0..(width * height)).map(|i| axis_max(rgb_image, i % width, i / width))
+                         .collect::<Vec<Axis>>()
+}
+
+
+pub fn non_max_suppression(rgb_image: &RgbImage) -> EdgeImage {
+    let edge_image = EdgeImage::from_vec(rgb_image.width(), rgb_image.height(),
+                                         edge_strengths(rgb_image)).unwrap();
+
+    let mut supp_image = EdgeImage::new(rgb_image.width(), rgb_image.height());
+
+    for (d, (x, y, _)) in multizip((edge_orientations(rgb_image), rgb_image.enumerate_pixels())) {
+        let x_sat = Bounded::new(x, rgb_image.width());
+        let y_sat = Bounded::new(y, rgb_image.height());
+
+        let x_pixel_group = ((x_sat.sub(1))..(x_sat.add(2))).map(|i| edge_image.get_pixel(i, y)[0].abs());
+        let y_pixel_group = ((y_sat.sub(1))..(y_sat.add(2))).map(|i| edge_image.get_pixel(x, i)[0].abs());
+
+        match d {
+            Axis::X => if edge_image.get_pixel(x, y)[0].abs() != x_pixel_group.fold(0./0.,
+                                                                                    f64::max) {
+                            supp_image.put_pixel(x, y, Luma { data: [0.0] });
+                       } else { },
+
+            Axis::Y => if edge_image.get_pixel(x, y)[0].abs() != y_pixel_group.fold(0./0.,
+                                                                                    f64::max) {
+                           supp_image.put_pixel(x, y, Luma { data: [0.0] });
+                       } else { }
+        }
+    }
+
+    supp_image
 }
 
 
 #[cfg(test)]
 #[macro_use]
 extern crate quickcheck;
-
 #[cfg(test)]
 use quickcheck::TestResult;
 
