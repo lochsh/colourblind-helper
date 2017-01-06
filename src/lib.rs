@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 extern crate image;
 use image::{RgbImage, Luma, ImageBuffer, GrayImage};
 
@@ -92,6 +94,7 @@ fn colour_change(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
                       channel_change(rgb_image, x, y, pair[1], Axis::X)).powi(2) +
                      (channel_change(rgb_image, x, y, pair[0], Axis::Y) -
                       channel_change(rgb_image, x, y, pair[1], Axis::Y)).powi(2)).sum::<f64>()
+                                                                                 .sqrt()
 }
 
 
@@ -109,7 +112,7 @@ fn edge_strength(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
 }
 
 
-pub fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
+fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
     let (width, height) = rgb_image.dimensions();
     (0..(width * height)).map(|i| edge_strength(rgb_image, i % width, i / width))
                          .collect::<Vec<f64>>()
@@ -143,19 +146,41 @@ pub fn non_max_suppression(rgb_image: &RgbImage) -> EdgeImage {
 
         let x_pixel_group = ((x_sat.sub(1))..(x_sat.add(2))).map(|i| edge_image.get_pixel(i, y)[0]);
         let y_pixel_group = ((y_sat.sub(1))..(y_sat.add(2))).map(|i| edge_image.get_pixel(x, i)[0]);
+        let p = edge_image.get_pixel(x, y);
 
         match d {
-            Axis::X => if edge_image.get_pixel(x, y)[0] != x_pixel_group.fold(0./0., f64::max) {
-                            supp_image.put_pixel(x, y, Luma { data: [1.0] });
-                       } else { },
 
-            Axis::Y => if edge_image.get_pixel(x, y)[0] != y_pixel_group.fold(0./0., f64::max) {
-                           supp_image.put_pixel(x, y, Luma { data: [1.0] });
-                       } else { }
+            Axis::X => if p[0] != y_pixel_group.fold(0./0., f64::max) {
+                           supp_image.put_pixel(x, y, Luma { data: [0.0] });
+                       } else {
+                           supp_image.put_pixel(x, y, *p);
+                       },
+
+            Axis::Y => if p[0] != x_pixel_group.fold(0./0., f64::max) {
+                           supp_image.put_pixel(x, y, Luma { data: [0.0] });
+                       } else {
+                           supp_image.put_pixel(x, y, *p);
+                       },
         }
     }
 
     supp_image
+}
+
+
+pub fn hysteresis(edge_image: &EdgeImage, threshold: f64) -> EdgeImage {
+    let mut hyst_image = EdgeImage::new(edge_image.width(), edge_image.height());
+
+    for (x, y, p) in edge_image.enumerate_pixels() {
+        let cmp = p[0].partial_cmp(&threshold).unwrap();
+
+        match cmp {
+            Ordering::Less => hyst_image.put_pixel(x, y, Luma { data: [0.0] }),
+            Ordering::Greater | Ordering::Equal => hyst_image.put_pixel(x, y, Luma {data: [1.0] }),
+        }
+    }
+
+    hyst_image
 }
 
 
