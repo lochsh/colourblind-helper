@@ -58,7 +58,7 @@ impl Bounded {
 }
 
 
-fn channel_change(rgb_image: &RgbImage, x: u32, y: u32, channel: Channel, axis: Axis) -> f64 {
+fn channel_gradient(rgb_image: &RgbImage, x: u32, y: u32, channel: Channel, axis: Axis) -> f64 {
     let c: usize;
 
     match channel {
@@ -84,29 +84,29 @@ fn channel_change(rgb_image: &RgbImage, x: u32, y: u32, channel: Channel, axis: 
 }
 
 
-fn colour_change(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
+fn colour_gradient(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
     let channels = [Channel::Red, Channel::Green, Channel::Blue];
     let pairs = channels.iter().cloned().combinations(2);
 
-    pairs.map(|pair| (channel_change(rgb_image, x, y, pair[0], Axis::X) -
-                      channel_change(rgb_image, x, y, pair[1], Axis::X)).powi(2) +
-                     (channel_change(rgb_image, x, y, pair[0], Axis::Y) -
-                      channel_change(rgb_image, x, y, pair[1], Axis::Y)).powi(2)).sum::<f64>()
-                                                                                 .sqrt()
+    pairs.map(|pair| (channel_gradient(rgb_image, x, y, pair[0], Axis::X) -
+                      channel_gradient(rgb_image, x, y, pair[1], Axis::X)).powi(2) +
+                     (channel_gradient(rgb_image, x, y, pair[0], Axis::Y) -
+                      channel_gradient(rgb_image, x, y, pair[1], Axis::Y)).powi(2)).sum::<f64>()
+                                                                                   .sqrt()
 }
 
 
-fn brightness_change(rgb_image: &RgbImage, x: u32, y: u32, axis: Axis) -> f64 {
-    channel_change(rgb_image, x, y, Channel::Red, axis) +
-    channel_change(rgb_image, x, y, Channel::Green, axis) +
-    channel_change(rgb_image, x, y, Channel::Blue, axis)
+fn brightness_gradient(rgb_image: &RgbImage, x: u32, y: u32, axis: Axis) -> f64 {
+    channel_gradient(rgb_image, x, y, Channel::Red, axis) +
+    channel_gradient(rgb_image, x, y, Channel::Green, axis) +
+    channel_gradient(rgb_image, x, y, Channel::Blue, axis)
 }
 
 
 fn edge_strength(rgb_image: &RgbImage, x: u32, y: u32) -> f64 {
-    brightness_change(rgb_image, x, y, Axis::X).powi(2) +
-    brightness_change(rgb_image, x, y, Axis::Y).powi(2) +
-    colour_change(rgb_image, x, y) * 3.0
+    brightness_gradient(rgb_image, x, y, Axis::X).powi(2) +
+    brightness_gradient(rgb_image, x, y, Axis::Y).powi(2) +
+    colour_gradient(rgb_image, x, y) * 3.0
 }
 
 
@@ -120,8 +120,8 @@ fn edge_strengths(rgb_image: &RgbImage) -> Vec<f64> {
 fn edge_orientations(rgb_image: &RgbImage) -> Vec<Axis> {
 
     fn axis_max(rgb_image: &RgbImage, x: u32, y: u32) -> Axis {
-        let diff = brightness_change(rgb_image, x, y, Axis::X) -
-                   brightness_change(rgb_image, x, y, Axis::Y);
+        let diff = brightness_gradient(rgb_image, x, y, Axis::X) -
+                   brightness_gradient(rgb_image, x, y, Axis::Y);
 
         if diff >= 0.0 { Axis::X } else { Axis::Y }
     }
@@ -240,32 +240,32 @@ impl rand::Rand for Axis {
 
 #[cfg(test)]
 quickcheck! {
-    fn test_channel_change_zero_on_black_image(x: u32, y: u32,
+    fn test_channel_gradient_zero_on_black_image(x: u32, y: u32,
                                                channel: Channel, axis: Axis) -> TestResult {
         let img = RgbImage::new(10, 10);
 
         match img.in_bounds(x, y) {
             false => TestResult::discard(),
-            true => TestResult::from_bool(channel_change(&RgbImage::new(10, 10),
+            true => TestResult::from_bool(channel_gradient(&RgbImage::new(10, 10),
                                                          x, y, channel, axis) == 0.0),
         }
     }
 
-    fn test_colour_change_zero_on_black_image(x: u32, y: u32) -> TestResult {
+    fn test_colour_gradient_zero_on_black_image(x: u32, y: u32) -> TestResult {
         let img = RgbImage::new(10, 10);
 
         match img.in_bounds(x, y) {
             false => TestResult::discard(),
-            true => TestResult::from_bool(colour_change(&RgbImage::new(10, 10), x, y) == 0.0),
+            true => TestResult::from_bool(colour_gradient(&RgbImage::new(10, 10), x, y) == 0.0),
         }
     }
 
-    fn test_brightness_change_zero_on_black_image(x: u32, y: u32, axis: Axis) -> TestResult{
+    fn test_brightness_gradient_zero_on_black_image(x: u32, y: u32, axis: Axis) -> TestResult{
         let img = RgbImage::new(10, 10);
 
         match img.in_bounds(x, y) {
             false => TestResult::discard(),
-            true => TestResult::from_bool(brightness_change(&img, x, y, axis) == 0.0),
+            true => TestResult::from_bool(brightness_gradient(&img, x, y, axis) == 0.0),
         }
     }
 
@@ -281,14 +281,26 @@ quickcheck! {
 
 
 #[test]
-fn test_channel_change_example() {
-   let pixels = vec!(255, 0, 0, 255, 0, 0, 255, 0, 0,
+fn test_channel_gradient_example() {
+    let pixels = vec!(255, 0, 0, 255, 0, 0, 255, 0, 0,
                       0, 255, 0, 0, 255, 0, 0, 255, 0,
                       0, 0, 255, 0, 0, 255, 0, 0, 255);
 
     let img = RgbImage::from_vec(3, 3, pixels).unwrap();
 
-    assert_eq!(channel_change(&img, 0, 0, Channel::Red, Axis::Y), 382.5);
-    assert_eq!(channel_change(&img, 0, 0, Channel::Blue, Axis::Y), -255.0);
-    assert_eq!(channel_change(&img, 2, 1, Channel::Green, Axis::X), 0.0);
+    assert_eq!(channel_gradient(&img, 0, 0, Channel::Red, Axis::Y), 382.5);
+    assert_eq!(channel_gradient(&img, 0, 0, Channel::Blue, Axis::Y), -255.0);
+    assert_eq!(channel_gradient(&img, 2, 1, Channel::Green, Axis::X), 0.0);
+}
+
+
+#[test]
+fn test_colour_gradient_example() {
+    let pixels = vec!(255, 0, 0, 255, 0, 0, 255, 0, 0,
+                      0, 255, 0, 0, 255, 0, 0, 255, 0,
+                      0, 0, 255, 0, 0, 255, 0, 0, 255);
+
+    let img = RgbImage::from_vec(3, 3, pixels).unwrap();
+
+    assert!(colour_gradient(&img, 0, 0) == 682762.5_f64.sqrt());
 }
