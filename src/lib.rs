@@ -166,18 +166,36 @@ pub fn non_max_suppression(rgb_image: &RgbImage) -> EdgeImage {
 }
 
 
-pub fn hysteresis(edge_image: &EdgeImage, threshold: f64) -> EdgeImage {
-    let mut hyst_image = EdgeImage::new(edge_image.width(), edge_image.height());
+fn double_threshold(edge_image: &EdgeImage, out_image: &mut EdgeImage, x: u32, y: u32, threshold: f64) {
+    let x_sat = Bounded::new(x, edge_image.width());
+    let y_sat = Bounded::new(y, edge_image.height());
+
+    for xx in x_sat.sub(1)..x_sat.add(2) {
+        for yy in y_sat.sub(1)..y_sat.add(2) {
+            match edge_image.get_pixel(xx, yy)[0].partial_cmp(&threshold).unwrap() {
+                Ordering::Greater | Ordering::Equal =>
+                    out_image.put_pixel(xx, yy, Luma {data: [1.0]}),
+                Ordering::Less => out_image.put_pixel(xx, yy, Luma {data: [0.0]}),
+            }
+        }
+    }
+}
+
+
+pub fn hysteresis(edge_image: &EdgeImage, low: f64, high: f64) -> EdgeImage {
+    let mut out_image = EdgeImage::new(edge_image.width(), edge_image.height());
+    let scale_factor = edge_image.pixels().map(|p| p[0]).fold(0./0., f64::max);
 
     for (x, y, p) in edge_image.enumerate_pixels() {
 
-        match p[0].partial_cmp(&threshold).unwrap() {
-            Ordering::Less => hyst_image.put_pixel(x, y, Luma { data: [0.0] }),
-            Ordering::Greater | Ordering::Equal => hyst_image.put_pixel(x, y, Luma {data: [1.0] }),
+        match p[0].partial_cmp(&(high * scale_factor)).unwrap() {
+            Ordering::Greater | Ordering::Equal =>
+                double_threshold(edge_image, &mut out_image, x, y, low * scale_factor),
+            Ordering::Less => out_image.put_pixel(x, y, Luma {data: [0.0]}),
         }
     }
 
-    hyst_image
+    out_image
 }
 
 
