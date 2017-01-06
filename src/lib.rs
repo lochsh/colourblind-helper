@@ -63,8 +63,8 @@ fn channel_change(rgb_image: &RgbImage, x: u32, y: u32, channel: Channel, axis: 
 
     match channel {
         Channel::Red => c = 0,
-        Channel::Blue => c = 1,
-        Channel::Green => c = 2,
+        Channel::Green => c = 1,
+        Channel::Blue => c = 2,
     }
 
     let x_sat = Bounded::new(x, rgb_image.width() - 1);
@@ -277,4 +277,18 @@ quickcheck! {
             true => TestResult::from_bool(edge_strength(&img, x, y) == 0.0),
         }
     }
+}
+
+
+#[test]
+fn test_channel_change_example() {
+   let pixels = vec!(255, 0, 0, 255, 0, 0, 255, 0, 0,
+                      0, 255, 0, 0, 255, 0, 0, 255, 0,
+                      0, 0, 255, 0, 0, 255, 0, 0, 255);
+
+    let img = RgbImage::from_vec(3, 3, pixels).unwrap();
+
+    assert_eq!(channel_change(&img, 0, 0, Channel::Red, Axis::Y), 382.5);
+    assert_eq!(channel_change(&img, 0, 0, Channel::Blue, Axis::Y), -255.0);
+    assert_eq!(channel_change(&img, 2, 1, Channel::Green, Axis::X), 0.0);
 }
