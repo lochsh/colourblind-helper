@@ -7,6 +7,8 @@
 [![Build 
 Status](https://travis-ci.org/lochsh/colourblind-helper.svg?branch=master)](https://travis-ci.org/lochsh/colourblind-helper)
 
-This project is still under development.  Currently having a look at [this 
-paper](http://www.cl.cam.ac.uk/research/dtg/www/publications/public/files/tr.1999.3.pdf) 
-in particular.
+This project is still under development.  I have edge detection :D  I will be 
+using this to generate a Voronoi diagram for seeding region growing.
+
+<img src="dog.jpg" width="200">
+<img src="hyst_gauss.jpg" width="200">
