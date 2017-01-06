@@ -172,9 +172,8 @@ pub fn hysteresis(edge_image: &EdgeImage, threshold: f64) -> EdgeImage {
     let mut hyst_image = EdgeImage::new(edge_image.width(), edge_image.height());
 
     for (x, y, p) in edge_image.enumerate_pixels() {
-        let cmp = p[0].partial_cmp(&threshold).unwrap();
 
-        match cmp {
+        match p[0].partial_cmp(&threshold).unwrap() {
             Ordering::Less => hyst_image.put_pixel(x, y, Luma { data: [0.0] }),
             Ordering::Greater | Ordering::Equal => hyst_image.put_pixel(x, y, Luma {data: [1.0] }),
         }
@@ -204,6 +203,9 @@ use quickcheck::TestResult;
 
 #[cfg(test)]
 extern crate rand;
+
+#[cfg(test)]
+use image::GenericImage;
 
 
 #[cfg(test)]
@@ -244,42 +246,37 @@ quickcheck! {
                                                channel: Channel, axis: Axis) -> TestResult {
         let img = RgbImage::new(10, 10);
 
-        if x >= img.width() || y >= img.height() {
-            TestResult::discard()
-        } else {
-            TestResult::from_bool(channel_change(&RgbImage::new(10, 10),
-                                                 x, y, channel, axis) == 0.0)
+        match img.in_bounds(x, y) {
+            false => TestResult::discard(),
+            true => TestResult::from_bool(channel_change(&RgbImage::new(10, 10),
+                                                         x, y, channel, axis) == 0.0),
         }
     }
 
     fn test_colour_change_zero_on_black_image(x: u32, y: u32) -> TestResult {
         let img = RgbImage::new(10, 10);
 
-        if x >= img.width() || y >= img.height() {
-            TestResult::discard()
-        } else {
-            TestResult::from_bool(colour_change(&RgbImage::new(10, 10), x, y) == 0.0)
+        match img.in_bounds(x, y) {
+            false => TestResult::discard(),
+            true => TestResult::from_bool(colour_change(&RgbImage::new(10, 10), x, y) == 0.0),
         }
     }
 
     fn test_brightness_change_zero_on_black_image(x: u32, y: u32, axis: Axis) -> TestResult{
         let img = RgbImage::new(10, 10);
 
-        if x >= img.width() || y >= img.height() {
-            TestResult::discard()
-        } else {
-            TestResult::from_bool(brightness_change(&img, x, y, axis) == 0.0)
+        match img.in_bounds(x, y) {
+            false => TestResult::discard(),
+            true => TestResult::from_bool(brightness_change(&img, x, y, axis) == 0.0),
         }
     }
 
     fn test_edge_strength_zero_on_black_image(x: u32, y: u32) -> TestResult{
         let img = RgbImage::new(10, 10);
 
-        if x >= img.width() || y >= img.height() {
-            TestResult::discard()
-        } else {
-            TestResult::from_bool(edge_strength(&img, x, y) == 0.0)
+        match img.in_bounds(x, y) {
+            false => TestResult::discard(),
+            true => TestResult::from_bool(edge_strength(&img, x, y) == 0.0),
         }
     }
-
 }
