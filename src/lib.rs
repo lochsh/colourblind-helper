@@ -39,10 +39,9 @@ struct Bounded {
 impl Bounded {
 
     fn new(i: u32, max_i: u32) -> Bounded {
-        if i <= max_i {
-            Bounded { i: i, max_i: max_i }
-        } else {
-            Bounded { i: max_i, max_i: max_i }
+        match i.cmp(&max_i) {
+            Ordering::Less | Ordering::Equal => Bounded { i: i, max_i: max_i },
+            Ordering::Greater => Bounded { i: max_i, max_i: max_i },
         }
     }
 
@@ -51,10 +50,9 @@ impl Bounded {
     }
 
     fn add(self, other: u32) -> u32 {
-        if self.i + other <= self.max_i {
-            self.i + other
-        } else {
-            self.max_i
+        match (self.i + other).cmp(&self.max_i) {
+            Ordering::Less | Ordering::Equal => self.i + other,
+            Ordering::Greater => self.max_i,
         }
     }
 }
